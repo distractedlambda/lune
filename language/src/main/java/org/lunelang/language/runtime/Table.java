@@ -10,5 +10,4 @@ public final class Table extends DynamicObject {
     }
 
     public static final HiddenKey METATABLE = new HiddenKey("metatable");
-    public static final HiddenKey SEQUENCE = new HiddenKey("sequence");
 }
