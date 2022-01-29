@@ -1,7 +1,7 @@
 grammar Lune;
 
 @header {
-package org.lunelang.language;
+package org.lunelang.language.compiler;
 }
 
 And: 'and';
