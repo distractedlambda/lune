@@ -1,21 +1,39 @@
 package org.lunelang.language.nodes.closure;
 
-import com.oracle.truffle.api.dsl.NodeChild;
-import com.oracle.truffle.api.dsl.NodeField;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.oracle.truffle.api.object.DynamicObjectLibrary;
 import org.lunelang.language.nodes.SourceNode;
 import org.lunelang.language.runtime.Closure;
 import org.lunelang.language.runtime.Nil;
 
-@NodeField(name = "key", type = Object.class)
-@NodeChild(value = "closureSourceNode", type = SourceNode.class)
-public abstract class ClosureCaptureSourceNode extends SourceNode {
-    protected abstract Object getKey();
+public final class ClosureCaptureSourceNode extends SourceNode {
+    @Child private SourceNode closureSourceNode;
+    private final Object key;
 
-    @Specialization(limit = "3")
-    protected Object loadCapture(Closure closure, @CachedLibrary("closure") DynamicObjectLibrary closures) {
-        return closures.getOrDefault(closure, getKey(), Nil.getInstance());
+    private final DynamicObjectLibrary closures = DynamicObjectLibrary.getFactory().createDispatched(3);
+
+    public ClosureCaptureSourceNode(SourceNode closureSourceNode, Object key) {
+        this.closureSourceNode = closureSourceNode;
+        this.key = key;
+    }
+
+    private Closure getClosure(VirtualFrame frame) {
+        return (Closure) closureSourceNode.executeGenericLoad(frame);
+    }
+
+    @Override
+    public long executeLongLoad(VirtualFrame frame) throws UnexpectedResultException {
+        return closures.getLongOrDefault(getClosure(frame), key, Nil.getInstance());
+    }
+
+    @Override
+    public double executeDoubleLoad(VirtualFrame frame) throws UnexpectedResultException {
+        return closures.getDoubleOrDefault(getClosure(frame), key, Nil.getInstance());
+    }
+
+    @Override
+    public Object executeGenericLoad(VirtualFrame frame) {
+        return closures.getOrDefault(getClosure(frame), key, Nil.getInstance());
     }
 }
