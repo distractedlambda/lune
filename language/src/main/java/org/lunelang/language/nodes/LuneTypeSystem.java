@@ -5,7 +5,7 @@ import com.oracle.truffle.api.dsl.TypeCheck;
 import com.oracle.truffle.api.dsl.TypeSystem;
 import org.lunelang.language.runtime.Nil;
 
-@TypeSystem({boolean.class, long.class, double.class})
+@TypeSystem({boolean.class, long.class, double.class, Nil.class})
 public abstract class LuneTypeSystem {
     @TypeCheck(Nil.class)
     public static boolean isNil(Object value) {
