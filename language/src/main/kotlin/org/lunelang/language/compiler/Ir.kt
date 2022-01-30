@@ -5,6 +5,7 @@ enum class UnaryOp {
     Not,
     Length,
     BitwiseNot,
+    CoerceToBoolean,
 }
 
 enum class BinaryOp {
@@ -38,7 +39,7 @@ class IrFunction(val parent: IrFunction?) {
     var firstBlock: IrBlock? = null
     var lastBlock: IrBlock? = null
 
-    fun append(block: IrBlock) {
+    fun append(block: IrBlock): IrBlock {
         block.assertUnlinked()
         block.function = this
         block.prior = lastBlock
@@ -52,9 +53,10 @@ class IrFunction(val parent: IrFunction?) {
         }
 
         lastBlock = block
+        return block
     }
 
-    fun prepend(block: IrBlock) {
+    fun prepend(block: IrBlock): IrBlock {
         block.assertUnlinked()
         block.function = this
         block.next = firstBlock
@@ -68,6 +70,7 @@ class IrFunction(val parent: IrFunction?) {
         }
 
         firstBlock = block
+        return block
     }
 }
 
@@ -88,7 +91,7 @@ class IrBlock {
         assert(next == null)
     }
 
-    fun append(instruction: Instruction) {
+    fun <I : Instruction> append(instruction: I): I {
         instruction.assertUnlinked()
         instruction.block = this
         instruction.prior = lastInstruction
@@ -102,9 +105,10 @@ class IrBlock {
         }
 
         lastInstruction = instruction
+        return instruction
     }
 
-    fun prepend(instruction: Instruction) {
+    fun <I : Instruction> prepend(instruction: I): I {
         instruction.assertUnlinked()
         instruction.block = this
         instruction.next = firstInstruction
@@ -118,6 +122,7 @@ class IrBlock {
         }
 
         firstInstruction = instruction
+        return instruction
     }
 }
 
@@ -209,7 +214,11 @@ sealed interface ValuelessInstruction : Instruction {
 
 class LocalLoadInstruction(val local: IrLocal) : AbstractInstruction(), ScalarInstruction
 
-class LocalStoreInstruction(val local: IrLocal, val value: Instruction) : AbstractInstruction(), ScalarInstruction
+class LocalStoreInstruction(val local: IrLocal, val value: Instruction) : AbstractInstruction(), ScalarInstruction {
+    init {
+        assert(value.isStrictlyScalar)
+    }
+}
 
 class NilConstantInstruction : AbstractInstruction(), ScalarInstruction
 
@@ -221,27 +230,66 @@ class DoubleConstantInstruction(val value: Double) : AbstractInstruction(), Scal
 
 class ObjectConstantExpression(val value: Any) : AbstractInstruction(), ScalarInstruction
 
-class ReturnInstruction(val value: Instruction) : AbstractInstruction(), ScalarInstruction
+class ReturnInstruction(val value: Instruction) : AbstractInstruction(), ValuelessInstruction
 
 class UnconditionalBranchInstruction(val target: IrBlock) : AbstractInstruction(), ValuelessInstruction
 
-class ConditionalBranchInstruction(val target: IrBlock, val condition: Instruction) : AbstractInstruction(), ValuelessInstruction
+class ConditionalBranchInstruction(val target: IrBlock, val condition: Instruction) : AbstractInstruction(), ValuelessInstruction {
+    init {
+        // FIXME: also assert strictly boolean?
+        assert(condition.isStrictlyScalar)
+    }
+}
 
-class UnaryOpInstruction(val op: UnaryOp, val operand: Instruction) : AbstractInstruction(), ScalarInstruction
+class UnaryOpInstruction(val op: UnaryOp, val operand: Instruction) : AbstractInstruction(), ScalarInstruction {
+    init {
+        assert(operand.isStrictlyScalar)
+    }
+}
 
-class BinaryOpInstruction(val op: BinaryOp, val lhs: Instruction, val rhs: Instruction) : AbstractInstruction(), ScalarInstruction
+class BinaryOpInstruction(val op: BinaryOp, val lhs: Instruction, val rhs: Instruction) : AbstractInstruction(), ScalarInstruction {
+    init {
+        assert(lhs.isStrictlyScalar)
+        assert(rhs.isStrictlyScalar)
+    }
+}
 
 class ClosureInstruction(val function: IrFunction) : AbstractInstruction(), ScalarInstruction
 
 class ScalarizeInstruction(val operand: Instruction) : AbstractInstruction(), ScalarInstruction
 
-class CallInstruction(val callee: Instruction, val arguments: List<Instruction>) : AbstractInstruction(), VectorInstruction
+class CallInstruction(val callee: Instruction, val arguments: List<Instruction>) : AbstractInstruction(), VectorInstruction {
+    init {
+        assert(callee.isStrictlyScalar)
+        if (arguments.isNotEmpty()) {
+            assert(arguments.subList(0, arguments.size - 1).all { it.isStrictlyScalar })
+        }
+    }
+}
 
-class TailCallInstruction(val callee: Instruction, val arguments: List<Instruction>) : AbstractInstruction(), ValuelessInstruction
+class TailCallInstruction(val callee: Instruction, val arguments: List<Instruction>) : AbstractInstruction(), ValuelessInstruction {
+    init {
+        assert(callee.isStrictlyScalar)
+        if (arguments.isNotEmpty()) {
+            assert(arguments.subList(0, arguments.size - 1).all { it.isStrictlyScalar })
+        }
+    }
+}
 
-class IndexedLoadInstruction(val receiver: Instruction, val key: Instruction) : AbstractInstruction(), ScalarInstruction
+class IndexedLoadInstruction(val receiver: Instruction, val key: Instruction) : AbstractInstruction(), ScalarInstruction {
+    init {
+        assert(receiver.isStrictlyScalar)
+        assert(key.isStrictlyScalar)
+    }
+}
 
-class IndexedStoreInstruction(val receiver: Instruction, val key: Instruction, val value: Instruction) : AbstractInstruction(), ValuelessInstruction
+class IndexedStoreInstruction(val receiver: Instruction, val key: Instruction, val value: Instruction) : AbstractInstruction(), ValuelessInstruction {
+    init {
+        assert(receiver.isStrictlyScalar)
+        assert(key.isStrictlyScalar)
+        assert(value.isStrictlyScalar)
+    }
+}
 
 class TrailingArgumentsInstruction : AbstractInstruction(), VectorInstruction
 
