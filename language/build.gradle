@@ -1,7 +1,7 @@
 plugins {
+    id 'antlr'
     id 'com.github.johnrengelman.shadow' version '7.1.2'
     id 'org.jetbrains.kotlin.jvm' version '1.6.10'
-    id 'antlr'
 }
 
 repositories {
@@ -9,13 +9,17 @@ repositories {
 }
 
 dependencies {
+    antlr 'org.antlr:antlr4:4.9.3'
     compileOnly 'org.graalvm.truffle:truffle-api:22.0.0'
     annotationProcessor 'org.graalvm.truffle:truffle-dsl-processor:22.0.0'
-    antlr 'org.antlr:antlr4:4.9.3'
 }
 
 java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(17))
     }
+}
+
+compileKotlin {
+    dependsOn generateGrammarSource
 }

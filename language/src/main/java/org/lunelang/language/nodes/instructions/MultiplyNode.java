@@ -5,6 +5,10 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import org.lunelang.language.nodes.BinaryOpNode;
 
 public abstract class MultiplyNode extends BinaryOpNode {
+    protected MultiplyNode(int resultSlot, int lhsSlot, int rhsSlot) {
+        super(resultSlot, lhsSlot, rhsSlot);
+    }
+
     @Specialization
     protected void longLong(VirtualFrame frame, long lhs, long rhs) {
         longResult(frame, lhs * rhs);

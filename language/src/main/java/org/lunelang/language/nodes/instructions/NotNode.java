@@ -7,6 +7,10 @@ import org.lunelang.language.nodes.UnaryOpNode;
 import static org.lunelang.language.nodes.LuneTypeSystem.isNil;
 
 public abstract class NotNode extends UnaryOpNode {
+    protected NotNode(int resultSlot, int operandSlot) {
+        super(resultSlot, operandSlot);
+    }
+
     @Specialization
     protected void onBoolean(VirtualFrame frame, boolean operand) {
         booleanResult(frame, !operand);
