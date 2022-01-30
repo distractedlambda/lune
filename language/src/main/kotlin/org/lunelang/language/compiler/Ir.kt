@@ -31,34 +31,168 @@ enum class BinaryOp {
 
 class IrLocal
 
-class IrFunction {
-    private val mutableBlocks = mutableListOf<IrBlock>()
+class IrFunction(val parent: IrFunction?) {
+    var sourceOffset: Int = -1
+    var sourceLength: Int = -1
 
-    val blocks: List<IrBlock> get() = mutableBlocks
+    var firstBlock: IrBlock? = null
+    var lastBlock: IrBlock? = null
+
+    fun append(block: IrBlock) {
+        block.assertUnlinked()
+        block.function = this
+        block.prior = lastBlock
+
+        if (lastBlock == null) {
+            assert(firstBlock == null)
+            firstBlock = block
+        } else {
+            assert(firstBlock != null)
+            lastBlock!!.next = block
+        }
+
+        lastBlock = block
+    }
+
+    fun prepend(block: IrBlock) {
+        block.assertUnlinked()
+        block.function = this
+        block.next = firstBlock
+
+        if (firstBlock == null) {
+            assert(lastBlock == null)
+            lastBlock = block
+        } else {
+            assert(lastBlock != null)
+            firstBlock!!.prior = block
+        }
+
+        firstBlock = block
+    }
 }
 
 class IrBlock {
-    var firstInstruction: AbstractInstruction? = null
-        private set
+    var sourceOffset: Int = -1
+    var sourceLength: Int = -1
 
-    var lastInstruction: AbstractInstruction? = null
-        private set
+    var function: IrFunction? = null
+    var prior: IrBlock? = null
+    var next: IrBlock? = null
+
+    var firstInstruction: Instruction? = null
+    var lastInstruction: Instruction? = null
+
+    fun assertUnlinked() {
+        assert(function == null)
+        assert(prior == null)
+        assert(next == null)
+    }
+
+    fun append(instruction: Instruction) {
+        instruction.assertUnlinked()
+        instruction.block = this
+        instruction.prior = lastInstruction
+
+        if (lastInstruction == null) {
+            assert(firstInstruction == null)
+            firstInstruction = instruction
+        } else {
+            assert(firstInstruction != null)
+            lastInstruction!!.next = instruction
+        }
+
+        lastInstruction = instruction
+    }
+
+    fun prepend(instruction: Instruction) {
+        instruction.assertUnlinked()
+        instruction.block = this
+        instruction.next = firstInstruction
+
+        if (firstInstruction == null) {
+            assert(lastInstruction == null)
+            lastInstruction = instruction
+        } else {
+            assert(lastInstruction != null)
+            firstInstruction!!.prior = instruction
+        }
+
+        firstInstruction = instruction
+    }
 }
 
 sealed interface Instruction {
-    val prior: AbstractInstruction?
+    var sourceOffset: Int
+    var sourceLength: Int
 
-    val next: AbstractInstruction?
+    var block: IrBlock?
+    var prior: Instruction?
+    var next: Instruction?
 
     val isStrictlyScalar: Boolean
+
+    fun assertUnlinked() {
+        assert(block == null)
+        assert(prior == null)
+        assert(next == null)
+    }
+
+    fun unlink() {
+        prior?.next = next
+        next?.prior = prior
+
+        block?.let {
+            if (this === it.firstInstruction) {
+                it.firstInstruction = next
+            }
+
+            if (this === it.lastInstruction) {
+                it.lastInstruction = prior
+            }
+        }
+
+        block = null
+        prior = null
+        next = null
+    }
+
+    fun makeBefore(other: Instruction) {
+        assertUnlinked()
+        assert(other.block != null)
+
+        block = other.block
+        next = other
+        prior = other.prior
+        other.prior?.next = this
+        other.prior = this
+
+        if (prior == null) {
+            other.block!!.firstInstruction = this
+        }
+    }
+
+    fun makeAfter(other: Instruction) {
+        assertUnlinked()
+        assert(other.block != null)
+
+        block = other.block
+        next = other.next
+        prior = other
+        other.next?.prior = this
+        other.next = this
+
+        if (next == null) {
+            other.block!!.lastInstruction = this
+        }
+    }
 }
 
 sealed class AbstractInstruction : Instruction {
-    final override var prior: AbstractInstruction? = null
-        private set
-
-    final override var next: AbstractInstruction? = null
-        private set
+    final override var sourceOffset: Int = -1
+    final override var sourceLength: Int = -1
+    final override var block: IrBlock? = null
+    final override var prior: Instruction? = null
+    final override var next: Instruction? = null
 }
 
 sealed interface ScalarInstruction : Instruction {
@@ -76,10 +210,6 @@ sealed interface ValuelessInstruction : Instruction {
 class LocalLoadInstruction(val local: IrLocal) : AbstractInstruction(), ScalarInstruction
 
 class LocalStoreInstruction(val local: IrLocal, val value: Instruction) : AbstractInstruction(), ScalarInstruction
-
-class CaptureLoadInstruction(val captureIndex: Int) : AbstractInstruction(), ScalarInstruction
-
-class CaptureStoreInstruction(val captureIndex: Int, val value: Instruction) : AbstractInstruction(), ScalarInstruction
 
 class NilConstantInstruction : AbstractInstruction(), ScalarInstruction
 
@@ -101,7 +231,7 @@ class UnaryOpInstruction(val op: UnaryOp, val operand: Instruction) : AbstractIn
 
 class BinaryOpInstruction(val op: BinaryOp, val lhs: Instruction, val rhs: Instruction) : AbstractInstruction(), ScalarInstruction
 
-class NewClosureInstruction(val function: IrFunction, val captureValues: List<Instruction>) : AbstractInstruction(), ScalarInstruction
+class ClosureInstruction(val function: IrFunction) : AbstractInstruction(), ScalarInstruction
 
 class ScalarizeInstruction(val operand: Instruction) : AbstractInstruction(), ScalarInstruction
 

@@ -1,12 +1,14 @@
 package org.lunelang.language.compiler
 
-import com.oracle.truffle.api.frame.FrameDescriptor
+class FunctionTranslator(parent: FunctionTranslator?) {
+    val function: IrFunction = IrFunction(parent?.function)
+    var currentBlock = IrBlock()
 
-class FunctionTranslator(private val parent: FunctionTranslator?) {
-    private val frameDescriptorBuilder = FrameDescriptor.newBuilder()
-    private val bytecode = ByteArrayList()
-    private val objectConstants = mutableListOf<Any>()
-    private val localBindings = mutableListOf<MutableMap<String, Int>>()
-    private val reusableSlots = hashSetOf<Int>()
-    private var conditionalBranchCount = 0
+    fun translate(context: LuneParser.NilExpressionContext): Instruction {
+        return NilConstantInstruction().also(currentBlock::append)
+    }
+
+    fun translate(context: LuneParser.TrueExpressionContext): Instruction {
+        return BooleanConstantInstruction(true).also(currentBlock::append)
+    }
 }

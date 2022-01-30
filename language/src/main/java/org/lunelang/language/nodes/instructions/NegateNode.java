@@ -1,4 +1,4 @@
-package org.lunelang.language.nodes.math;
+package org.lunelang.language.nodes.instructions;
 
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
