@@ -153,7 +153,7 @@ variable:
   | receiver=prefixExpression '.' key=Name #MemberVariable;
 
 prefixExpression:
-    Name #NameExpression
+    name=Name #NameExpression
   | '(' wrapped=expression ')' #ParenthesizedExpression
   | receiver=prefixExpression '[' key=expression ']' #IndexExpression
   | receiver=prefixExpression '.' key=Name #MemberExpression

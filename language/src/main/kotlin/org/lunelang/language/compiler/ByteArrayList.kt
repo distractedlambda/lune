@@ -4,9 +4,11 @@ import com.oracle.truffle.api.memory.ByteArraySupport
 import java.util.Objects.checkFromIndexSize
 import java.util.Objects.checkIndex
 
-class ByteArrayList(capacity: Int = 0) {
+class ByteArrayListy(capacity: Int = 0) {
     private var buffer: ByteArray
-    private var size: Int = 0
+
+    var size: Int = 0
+        private set
 
     init {
         require(capacity >= 0)

@@ -35,6 +35,9 @@ public final class Bytecode {
     // [OP_LOAD_OBJECT slot:int object:int]
     public static final byte OP_LOAD_OBJECT = 9;
 
+    // [OP_COPY dst_slot:int src_slot:int]
+    public static final byte OP_COPY = 10;
+
     public static int getEmbeddedInt(byte[] bytecode, int offset) {
         return BYTE_ARRAY_SUPPORT.getInt(bytecode, offset);
     }
