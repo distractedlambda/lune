@@ -3,6 +3,10 @@ package org.lunelang.language.compiler;
 public final class LocalLoadInstruction extends Instruction {
     private LocalVariable localVariable;
 
+    public LocalLoadInstruction(LocalVariable localVariable) {
+        setLocalVariable(localVariable);
+    }
+
     public LocalVariable getLocalVariable() {
         return localVariable;
     }

@@ -4,6 +4,12 @@ public final class BinaryOpInstruction extends Instruction {
     BinaryOp op;
     Instruction lhs, rhs;
 
+    public BinaryOpInstruction(BinaryOp op, Instruction lhs, Instruction rhs) {
+        setOp(op);
+        setLhs(lhs);
+        setRhs(rhs);
+    }
+
     public BinaryOp getOp() {
         return op;
     }

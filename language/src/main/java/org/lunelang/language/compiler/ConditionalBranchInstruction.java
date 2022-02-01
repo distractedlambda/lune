@@ -4,6 +4,12 @@ public final class ConditionalBranchInstruction extends Instruction {
     private Instruction condition;
     private Block trueTarget, falseTarget;
 
+    public ConditionalBranchInstruction(Instruction condition, Block trueTarget, Block falseTarget) {
+        setCondition(condition);
+        setTrueTarget(trueTarget);
+        setFalseTarget(falseTarget);
+    }
+
     public Instruction getCondition() {
         return condition;
     }

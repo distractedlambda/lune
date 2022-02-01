@@ -1,13 +1,13 @@
 package org.lunelang.language.compiler;
 
 public final class Function {
-    private Block entryBlock;
+    private final Block entryBlock;
+
+    public Function() {
+        entryBlock = new Block(this);
+    }
 
     public Block getEntryBlock() {
         return entryBlock;
-    }
-
-    public void setEntryBlock(Block entryBlock) {
-        this.entryBlock = entryBlock;
     }
 }

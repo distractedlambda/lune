@@ -3,16 +3,16 @@ package org.lunelang.language.compiler;
 import org.graalvm.collections.EconomicSet;
 
 public final class Block {
-    private Function function;
+    private final Function function;
     private Instruction firstInstruction, lastInstruction;
     private EconomicSet<Block> predecessors;
 
-    public Function getFunction() {
-        return function;
+    public Block(Function function) {
+        this.function = function;
     }
 
-    public void setFunction(Function function) {
-        this.function = function;
+    public Function getFunction() {
+        return function;
     }
 
     public <I extends Instruction> I append(I instruction) {

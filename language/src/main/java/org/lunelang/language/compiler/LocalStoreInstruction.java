@@ -4,6 +4,11 @@ public final class LocalStoreInstruction extends Instruction {
     private LocalVariable localVariable;
     private Instruction value;
 
+    public LocalStoreInstruction(LocalVariable localVariable, Instruction value) {
+        setLocalVariable(localVariable);
+        setValue(value);
+    }
+
     public LocalVariable getLocalVariable() {
         return localVariable;
     }
