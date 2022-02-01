@@ -8,6 +8,14 @@ public final class LocalLoadInstruction extends Instruction {
     }
 
     public void setLocalVariable(LocalVariable localVariable) {
+        if (this.localVariable != null) {
+            this.localVariable.removeLoad(this);
+        }
+
+        if (localVariable != null) {
+            localVariable.addLoad(this);
+        }
+
         this.localVariable = localVariable;
     }
 }

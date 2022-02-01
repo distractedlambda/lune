@@ -9,6 +9,14 @@ public final class LocalStoreInstruction extends Instruction {
     }
 
     public void setLocalVariable(LocalVariable localVariable) {
+        if (this.localVariable != null) {
+            this.localVariable.removeStore(this);
+        }
+
+        if (localVariable != null) {
+            localVariable.addStore(this);
+        }
+
         this.localVariable = localVariable;
     }
 

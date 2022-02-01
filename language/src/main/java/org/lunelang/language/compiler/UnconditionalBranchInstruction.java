@@ -8,6 +8,14 @@ public final class UnconditionalBranchInstruction extends Instruction {
     }
 
     public void setTarget(Block target) {
+        if (this.target != null) {
+            this.target.removePredecessor(getBlock());
+        }
+
+        if (target != null) {
+            target.addPredecessor(getBlock());
+        }
+
         this.target = target;
     }
 }

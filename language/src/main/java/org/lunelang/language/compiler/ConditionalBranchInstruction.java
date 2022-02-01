@@ -2,7 +2,7 @@ package org.lunelang.language.compiler;
 
 public final class ConditionalBranchInstruction extends Instruction {
     private Instruction condition;
-    private Block target;
+    private Block trueTarget, falseTarget;
 
     public Instruction getCondition() {
         return condition;
@@ -12,11 +12,35 @@ public final class ConditionalBranchInstruction extends Instruction {
         this.condition = condition;
     }
 
-    public Block getTarget() {
-        return target;
+    public Block getTrueTarget() {
+        return trueTarget;
     }
 
-    public void setTarget(Block target) {
-        this.target = target;
+    public void setTrueTarget(Block trueTarget) {
+        if (this.trueTarget != null && this.trueTarget != this.falseTarget) {
+            this.trueTarget.removePredecessor(getBlock());
+        }
+
+        if (trueTarget != null) {
+            trueTarget.addPredecessor(getBlock());
+        }
+
+        this.trueTarget = trueTarget;
+    }
+
+    public Block getFalseTarget() {
+        return falseTarget;
+    }
+
+    public void setFalseTarget(Block falseTarget) {
+        if (this.falseTarget != null && this.falseTarget != this.trueTarget) {
+            this.falseTarget.removePredecessor(getBlock());
+        }
+
+        if (falseTarget != null) {
+            falseTarget.addPredecessor(getBlock());
+        }
+
+        this.falseTarget = falseTarget;
     }
 }
