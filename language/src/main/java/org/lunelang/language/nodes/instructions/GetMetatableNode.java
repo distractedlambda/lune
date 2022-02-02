@@ -3,7 +3,7 @@ package org.lunelang.language.nodes.instructions;
 import com.oracle.truffle.api.dsl.Specialization;
 import org.lunelang.language.nodes.LuneNode;
 import org.lunelang.language.runtime.Closure;
-import org.lunelang.language.runtime.InternedString;
+import org.lunelang.language.runtime.LuneString;
 import org.lunelang.language.runtime.Nil;
 import org.lunelang.language.runtime.Table;
 
@@ -31,12 +31,7 @@ public abstract class GetMetatableNode extends LuneNode {
     }
 
     @Specialization
-    protected Object ofInternedString(InternedString subject) {
-        return getContext().getStringMetatable();
-    }
-
-    @Specialization
-    protected Object ofString(byte[] subject) {
+    protected Object ofString(LuneString subject) {
         return getContext().getStringMetatable();
     }
 

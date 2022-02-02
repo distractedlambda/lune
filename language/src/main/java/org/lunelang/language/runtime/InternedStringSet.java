@@ -2,12 +2,12 @@ package org.lunelang.language.runtime;
 
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
-import java.util.Arrays;
 
+import static com.oracle.truffle.api.CompilerAsserts.neverPartOfCompilation;
 import static java.lang.Math.addExact;
 
 public final class InternedStringSet {
-    private final ReferenceQueue<byte[]> queue = new ReferenceQueue<>();
+    private final ReferenceQueue<LuneString> queue = new ReferenceQueue<>();
     private Entry[] entries = new Entry[8];
     private int overestimatedSize;
 
@@ -28,7 +28,9 @@ public final class InternedStringSet {
         entries = newEntries;
     }
 
-    public byte[] intern(byte[] string) {
+    public LuneString intern(LuneString string) {
+        neverPartOfCompilation();
+
         for (var entry = (Entry) queue.poll(); entry != null; entry = (Entry) queue.poll()) {
             overestimatedSize--;
         }
@@ -37,7 +39,7 @@ public final class InternedStringSet {
             grow();
         }
 
-        var hashCode = (int) FxHash.hash(string);
+        var hashCode = string.hashCode();
         var index = hashCode % entries.length;
 
         for (Entry prior = null, entry = entries[index]; entry != null; entry = entry.next) {
@@ -48,7 +50,7 @@ public final class InternedStringSet {
                 } else {
                     entries[index] = entry.next;
                 }
-            } else if (entry.hashCode == hashCode && Arrays.equals(string, entryString)) {
+            } else if (entry.hashCode == hashCode && string.equals(entryString)) {
                 return entryString;
             } else {
                 prior = entry;
@@ -59,11 +61,16 @@ public final class InternedStringSet {
         return string;
     }
 
-    private static final class Entry extends WeakReference<byte[]> {
+    public LuneString intern(String string) {
+        neverPartOfCompilation();
+        return intern(new LuneString(string));
+    }
+
+    private static final class Entry extends WeakReference<LuneString> {
         private final int hashCode;
         private Entry next;
 
-        public Entry(byte[] referent, ReferenceQueue<byte[]> queue, int hashCode, Entry next) {
+        public Entry(LuneString referent, ReferenceQueue<LuneString> queue, int hashCode, Entry next) {
             super(referent, queue);
             this.hashCode = hashCode;
             this.next = next;
