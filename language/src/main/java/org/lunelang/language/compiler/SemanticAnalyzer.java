@@ -3,7 +3,8 @@ package org.lunelang.language.compiler;
 import org.graalvm.collections.EconomicMap;
 
 import java.nio.charset.StandardCharsets;
-import java.util.function.Consumer;
+import java.util.ArrayList;
+import java.util.List;
 
 public final class SemanticAnalyzer {
     private LocalScope scope = new LocalScope(null);
@@ -116,7 +117,7 @@ public final class SemanticAnalyzer {
     }
 
     private Instruction analyze(LuneParser.CallExpressionContext context, boolean allowMultipleResults) {
-
+        throw new UnsupportedOperationException("TODO");
     }
 
     private Instruction analyze(LuneParser.PrefixExpressionContext context) {
@@ -156,6 +157,8 @@ public final class SemanticAnalyzer {
             return analyze(c);
         } else if (context instanceof LuneParser.PrefixExpressionExpressionContext c) {
             return analyze(c, allowMultipleResults);
+        } else {
+            throw new UnsupportedOperationException("TODO");
         }
     }
 
@@ -163,11 +166,51 @@ public final class SemanticAnalyzer {
         return analyze(context, false);
     }
 
+    // FIXME how tf does label scope work
+
+    private void analyze(LuneParser.LabelStatementContext context) {
+        var name = context.name.getText();
+        var labeledBlock = newBlock();
+
+        if (scope.labels.put(name, labeledBlock) != null) {
+            throw new UnsupportedOperationException("TODO handle reporting this error");
+        }
+
+        var unresolvedLabels = scope.unresolvedLabels.get(name);
+        if (unresolvedLabels != null) {
+            unresolvedLabels.forEach(it -> it.setTarget(labeledBlock));
+        }
+
+        append(new UnconditionalBranchInstruction(labeledBlock));
+        setCurrentBlock(labeledBlock);
+    }
+
+    private void analyze(LuneParser.GotoStatementContext context) {
+        var target = context.target.getText();
+        var branch = append(new UnconditionalBranchInstruction(null));
+
+        var targetBlock = scope.labels.get(target);
+        if (targetBlock != null) {
+            branch.setTarget(targetBlock);
+        } else {
+            var existingList = scope.unresolvedLabels.get(target);
+            if (existingList != null) {
+                existingList.add(branch);
+            } else {
+                var list = new ArrayList<UnconditionalBranchInstruction>();
+                list.add(branch);
+                scope.unresolvedLabels.put(target, list);
+            }
+        }
+
+        setCurrentBlock(newBlock());
+    }
+
     private static final class LocalScope {
         private final LocalScope parentScope;
         private EconomicMap<String, LocalVariable> bindings;
         private EconomicMap<String, Block> labels;
-        private EconomicMap<String, Consumer<Block>> unresolvedLabels;
+        private EconomicMap<String, List<UnconditionalBranchInstruction>> unresolvedLabels;
 
         private LocalScope(LocalScope parentScope) {
             this.parentScope = parentScope;

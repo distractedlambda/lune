@@ -47,6 +47,6 @@ public abstract class GetMetatableNode extends LuneNode {
 
     @Specialization
     protected Object ofTable(Table subject) {
-        return subject.getShape().getDynamicType();
+        return subject.getMetatable();
     }
 }

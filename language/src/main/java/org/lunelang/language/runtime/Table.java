@@ -1,10 +1,40 @@
 package org.lunelang.language.runtime;
 
-import com.oracle.truffle.api.object.DynamicObject;
-import com.oracle.truffle.api.object.Shape;
+public final class Table {
+    private Object metatable;
+    private long length;
+    private Object[] objectData;
+    private byte[] primitiveData;
 
-public final class Table extends DynamicObject {
-    public Table(Shape shape) {
-        super(shape);
+    public Object getMetatable() {
+        return metatable;
+    }
+
+    public void setMetatable(Object metatable) {
+        this.metatable = metatable;
+    }
+
+    public long getLength() {
+        return length;
+    }
+
+    public void setLength(long length) {
+        this.length = length;
+    }
+
+    public Object getObjectData() {
+        return objectData;
+    }
+
+    public void setObjectData(Object[] objectData) {
+        this.objectData = objectData;
+    }
+
+    public byte[] getPrimitiveData() {
+        return primitiveData;
+    }
+
+    public void setPrimitiveData(byte[] primitiveData) {
+        this.primitiveData = primitiveData;
     }
 }
