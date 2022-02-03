@@ -129,7 +129,7 @@ public final class LuneContext {
         return leMetamethodKey;
     }
 
-    public LuneString getIndexMetamethodKey() {
+    public LuneString getIndexMetavalueKey() {
         return indexMetamethodKey;
     }
 
