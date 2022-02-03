@@ -1,4 +1,4 @@
-package org.lunelang.language.nodes.tables;
+package org.lunelang.language.nodes.util;
 
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.dsl.Bind;
@@ -12,13 +12,11 @@ import org.lunelang.language.runtime.Closure;
 public abstract class ClosureCallNode extends LuneNode {
     public abstract Object execute(Closure closure, Object[] arguments);
 
-    @Specialization(guards = "callTarget == callNode.getCallTarget()", limit = "3")
+    @Specialization(guards = "closure.getCallTarget() == callNode.getCallTarget()", limit = "3")
     protected Object direct(
         Closure closure,
         Object[] arguments,
-        @Cached.Shared("closureCallTargetNode") @Cached ClosureCallTargetNode closureCallTargetNode,
-        @Bind("closureCallTargetNode.execute(closure)") CallTarget callTarget,
-        @Cached("create(callTarget)") DirectCallNode callNode
+        @Cached("create(closure.getCallTarget())") DirectCallNode callNode
     ) {
         return callNode.call(arguments);
     }
