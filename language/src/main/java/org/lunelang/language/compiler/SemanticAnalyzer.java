@@ -1,6 +1,7 @@
 package org.lunelang.language.compiler;
 
 import org.graalvm.collections.EconomicMap;
+import org.graalvm.collections.Pair;
 
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
@@ -24,6 +25,35 @@ public final class SemanticAnalyzer {
 
     private <I extends Instruction> I append(I instruction) {
         return function.currentBlock.append(instruction);
+    }
+
+    private Instruction analyze(LuneParser.TableConstructorContext context) {
+        var table = new NewTableInstruction();
+        var keyValuePairs = new ArrayList<Pair<Instruction, Instruction>>();
+
+        for (var i = 0; i < context.fields.size(); i++) {
+            var field = context.fields.get(i);
+            if (field instanceof LuneParser.IndexedFieldContext c) {
+                var key = analyze(c.key);
+                var value = analyze(c.value);
+                keyValuePairs.add(Pair.create(key, value));
+            } else if (field instanceof LuneParser.NamedFieldContext c) {
+                var key = new StringConstantInstruction(c.key.getText().getBytes(StandardCharsets.UTF_8));
+                var value = analyze(c.value);
+                keyValuePairs.add(Pair.create(key, value));
+            } else if (field instanceof LuneParser.OrdinalFieldContext c) {
+                table.appendValue(analyze(c.value, i == context.fields.size() - 1));
+            } else {
+                throw new ClassCastException();
+            }
+        }
+
+        append(table);
+        for (var kv : keyValuePairs) {
+            append(new IndexedStoreInstruction(table, kv.getLeft(), kv.getRight()));
+        }
+
+        return table;
     }
 
     private void analyze(LuneParser.BlockContext context) {
@@ -280,11 +310,11 @@ public final class SemanticAnalyzer {
     }
 
     private Instruction analyze(LuneParser.DecimalFloatExpressionContext context) {
-        throw new UnsupportedOperationException("TODO");
+        return append(new DoubleConstantInstruction(parseDouble(context.token.getText())));
     }
 
     private Instruction analyze(LuneParser.HexadecimalFloatExpressionContext context) {
-        throw new UnsupportedOperationException("TODO");
+        return append(new DoubleConstantInstruction(parseDouble(context.token.getText())));
     }
 
     private Instruction analyze(LuneParser.ShortLiteralStringExpressionContext context) {
@@ -300,7 +330,7 @@ public final class SemanticAnalyzer {
     }
 
     private Instruction analyze(LuneParser.TableExpressionContext context) {
-        throw new UnsupportedOperationException("TODO");
+        return analyze(context.table);
     }
 
     private Instruction analyze(LuneParser.FunctionExpressionContext context) {
@@ -421,7 +451,7 @@ public final class SemanticAnalyzer {
         } else if (context instanceof LuneParser.FunctionExpressionContext c) {
             return analyze(c);
         } else if (context instanceof LuneParser.PrefixExpressionExpressionContext c) {
-            return analyze(c);
+            return analyze(c, allowMultipleResults);
         } else if (context instanceof LuneParser.PowerExpressionContext c) {
             return analyze(c);
         } else if (context instanceof LuneParser.PrefixOperatorExpressionContext c) {

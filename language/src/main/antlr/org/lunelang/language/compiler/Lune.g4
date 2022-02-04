@@ -199,6 +199,6 @@ tableConstructor:
     '{' (fields+=field ((',' | ';') fields+=field)* (',' | ';')?)? '}';
 
 field:
-    '[' key=expression ']' '=' value=expression #IndexedFieldExpression
-  | key=Name '=' value=expression #NamedFieldExpression
-  | value=expression #OrdinalFieldExpression;
+    '[' key=expression ']' '=' value=expression #IndexedField
+  | key=Name '=' value=expression #NamedField
+  | value=expression #OrdinalField;
