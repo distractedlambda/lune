@@ -20,4 +20,5 @@ public enum BinaryOp {
     Less,
     Greater,
     Index,
+    Concatenate,
 }

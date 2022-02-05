@@ -1,6 +1,7 @@
 package org.lunelang.language.compiler;
 
 import com.oracle.truffle.api.source.Source;
+import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.graalvm.collections.EconomicMap;
 import org.graalvm.collections.Pair;
@@ -9,6 +10,7 @@ import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 import static java.lang.Character.isDigit;
 import static java.lang.Character.isHighSurrogate;
@@ -28,6 +30,18 @@ public final class SemanticAnalyzer {
     public SemanticAnalyzer(Source source) {
         this.source = requireNonNull(source);
         this.sourceString = source.toString();
+    }
+
+    private static <I extends Instruction> I attachSourceRange(I instruction, Token token) {
+        instruction.setSourceOffset(token.getStartIndex());
+        instruction.setSourceLength(token.getStopIndex() - token.getStartIndex() + 1);
+        return instruction;
+    }
+
+    private static <I extends Instruction> I attachSourceRange(I instruction, ParserRuleContext context) {
+        instruction.setSourceOffset(context.getStart().getStartIndex());
+        instruction.setSourceLength(context.getStop().getStopIndex() - context.getStart().getStartIndex() + 1);
+        return instruction;
     }
 
     private Block newBlock() {
@@ -161,22 +175,22 @@ public final class SemanticAnalyzer {
         return parsed.toByteArray();
     }
 
-    private Instruction analyze(LuneParser.TableConstructorContext context) {
+    private Instruction visit(LuneParser.TableConstructorContext context) {
         var table = new NewTableInstruction();
         var keyValuePairs = new ArrayList<Pair<Instruction, Instruction>>();
 
         for (var i = 0; i < context.fields.size(); i++) {
             var field = context.fields.get(i);
             if (field instanceof LuneParser.IndexedFieldContext c) {
-                var key = analyze(c.key);
-                var value = analyze(c.value);
+                var key = visit(c.key);
+                var value = visit(c.value);
                 keyValuePairs.add(Pair.create(key, value));
             } else if (field instanceof LuneParser.NamedFieldContext c) {
                 var key = new StringConstantInstruction(c.key.getText().getBytes(StandardCharsets.UTF_8));
-                var value = analyze(c.value);
+                var value = visit(c.value);
                 keyValuePairs.add(Pair.create(key, value));
             } else if (field instanceof LuneParser.OrdinalFieldContext c) {
-                table.appendValue(analyze(c.value, i == context.fields.size() - 1));
+                table.appendValue(visit(c.value, i == context.fields.size() - 1));
             } else {
                 throw new ClassCastException();
             }
@@ -187,12 +201,12 @@ public final class SemanticAnalyzer {
             append(new IndexedStoreInstruction(table, kv.getLeft(), kv.getRight()));
         }
 
-        return table;
+        return attachSourceRange(table, context);
     }
 
-    private void analyze(LuneParser.BlockContext context) {
+    private void visit(LuneParser.BlockContext context) {
         for (var statement : context.statements) {
-            analyze(statement);
+            visit(statement);
         }
 
         if (context.ret != null) {
@@ -205,11 +219,11 @@ public final class SemanticAnalyzer {
                 var instruction = new ReturnInstruction();
 
                 for (var i = 0; i < context.returnValues.size() - 1; i++) {
-                    instruction.appendValue(analyze(context.returnValues.get(i)));
+                    instruction.appendValue(visit(context.returnValues.get(i)));
                 }
 
                 if (!context.returnValues.isEmpty()) {
-                    instruction.appendValue(analyze(context.returnValues.get(context.returnValues.size() - 1), true));
+                    instruction.appendValue(visit(context.returnValues.get(context.returnValues.size() - 1), true));
                 }
 
                 append(instruction);
@@ -217,19 +231,88 @@ public final class SemanticAnalyzer {
         }
     }
 
-    private void analyze(LuneParser.EmptyStatementContext context) {
+    private void visit(LuneParser.EmptyStatementContext context) {
         // Nothing to do
     }
 
-    private void analyze(LuneParser.AssignmentStatementContext context) {
+    private Consumer<Instruction> visit(LuneParser.NamedVariableContext context) {
+        var name = context.name.getText();
+
+        for (var nextScope = scope; nextScope != null; nextScope = nextScope.parentScope) {
+            var local = nextScope.bindings.get(name);
+            if (local != null) {
+                return value -> append(new LocalStoreInstruction(local, value));
+            }
+        }
+
+        for (var nextScope = scope; nextScope != null; nextScope = scope.parentScope) {
+            var envLocal = nextScope.bindings.get("_ENV");
+            if (envLocal != null) {
+                var env = append(new LocalLoadInstruction(envLocal));
+                return value -> {
+                    var key = append(new StringConstantInstruction(name.getBytes(StandardCharsets.UTF_8)));
+                    append(new IndexedStoreInstruction(env, key, value));
+                };
+            }
+        }
+
+        throw new AssertionError();
+    }
+
+    private Consumer<Instruction> visit(LuneParser.IndexedVariableContext context) {
+        var receiver = visit(context.receiver);
+        var key = visit(context.key);
+        return value -> append(new IndexedStoreInstruction(receiver, key, value));
+    }
+
+    private Consumer<Instruction> visit(LuneParser.MemberVariableContext context) {
+        var receiver = visit(context.receiver);
+        return value -> {
+            var key = append(new StringConstantInstruction(context.key.getText().getBytes(StandardCharsets.UTF_8)));
+            append(new IndexedStoreInstruction(receiver, key, value));
+        };
+    }
+
+    private Consumer<Instruction> visit(LuneParser.VariableContext context) {
+        if (context instanceof LuneParser.NamedVariableContext c) {
+            return visit(c);
+        } else if (context instanceof LuneParser.IndexedVariableContext c) {
+            return visit(c);
+        } else if (context instanceof LuneParser.MemberVariableContext c) {
+            return visit(c);
+        } else {
+            throw new ClassCastException();
+        }
+    }
+
+    private void visit(LuneParser.AssignmentStatementContext context) {
+        var assigners = context.lhs.stream().map(this::visit).toList();
+        var values = new Instruction[context.rhs.size()];
+
+        for (var i = 0; i < values.length; i++) {
+            values[i] = visit(context.rhs.get(i), i == values.length - 1);
+        }
+
+        for (var i = 0; i < assigners.size(); i++) {
+            Instruction assignedValue;
+
+            if (i < values.length - 1) {
+                assignedValue = values[i];
+            } else {
+                assignedValue = append(new ExtractScalarInstruction(values[values.length - 1], i - values.length + 1));
+            }
+
+            assigners.get(i).accept(assignedValue);
+        }
+    }
+
+    private void visit(LuneParser.FunctionCallStatementContext context) {
         throw new UnsupportedOperationException("TODO");
     }
 
-    private void analyze(LuneParser.FunctionCallStatementContext context) {
-        throw new UnsupportedOperationException("TODO");
-    }
+    private void visit(LuneParser.LabelStatementContext context) {
+        // FIXME: rewrite this
 
-    private void analyze(LuneParser.LabelStatementContext context) {
         var name = context.name.getText();
         var labeledBlock = newBlock();
 
@@ -246,11 +329,13 @@ public final class SemanticAnalyzer {
         setCurrentBlock(labeledBlock);
     }
 
-    private void analyze(LuneParser.BreakStatementContext context) {
+    private void visit(LuneParser.BreakStatementContext context) {
         throw new UnsupportedOperationException("TODO");
     }
 
-    private void analyze(LuneParser.GotoStatementContext context) {
+    private void visit(LuneParser.GotoStatementContext context) {
+        // fixme: rewrite this
+
         var target = context.target.getText();
         var branch = append(new UnconditionalBranchInstruction(null));
 
@@ -271,153 +356,153 @@ public final class SemanticAnalyzer {
         setCurrentBlock(newBlock());
     }
 
-    private void analyze(LuneParser.BlockStatementContext context) {
-        analyze(context.body);
+    private void visit(LuneParser.BlockStatementContext context) {
+        visit(context.body);
     }
 
-    private void analyze(LuneParser.WhileStatementContext context) {
+    private void visit(LuneParser.WhileStatementContext context) {
         throw new UnsupportedOperationException("TODO");
     }
 
-    private void analyze(LuneParser.RepeatStatementContext context) {
+    private void visit(LuneParser.RepeatStatementContext context) {
         throw new UnsupportedOperationException("TODO");
     }
 
-    private void analyze(LuneParser.IfStatementContext context) {
+    private void visit(LuneParser.IfStatementContext context) {
         throw new UnsupportedOperationException("TODO");
     }
 
-    private void analyze(LuneParser.NumericForStatementContext context) {
+    private void visit(LuneParser.NumericForStatementContext context) {
         throw new UnsupportedOperationException("TODO");
     }
 
-    private void analyze(LuneParser.GenericForStatementContext context) {
+    private void visit(LuneParser.GenericForStatementContext context) {
         throw new UnsupportedOperationException("TODO");
     }
 
-    private void analyze(LuneParser.FunctionStatementContext context) {
+    private void visit(LuneParser.FunctionStatementContext context) {
         throw new UnsupportedOperationException("TODO");
     }
 
-    private void analyze(LuneParser.LocalFunctionStatementContext context) {
+    private void visit(LuneParser.LocalFunctionStatementContext context) {
         throw new UnsupportedOperationException("TODO");
     }
 
-    private void analyze(LuneParser.LocalStatementContext context) {
+    private void visit(LuneParser.LocalStatementContext context) {
         throw new UnsupportedOperationException("TODO");
     }
 
-    private void analyze(LuneParser.StatementContext context) {
+    private void visit(LuneParser.StatementContext context) {
         if (context instanceof LuneParser.EmptyStatementContext c) {
-            analyze(c);
+            visit(c);
         } else if (context instanceof LuneParser.AssignmentStatementContext c) {
-            analyze(c);
+            visit(c);
         } else if (context instanceof LuneParser.FunctionCallStatementContext c) {
-            analyze(c);
+            visit(c);
         } else if (context instanceof LuneParser.LabelStatementContext c) {
-            analyze(c);
+            visit(c);
         } else if (context instanceof LuneParser.BreakStatementContext c) {
-            analyze(c);
+            visit(c);
         } else if (context instanceof LuneParser.GotoStatementContext c) {
-            analyze(c);
+            visit(c);
         } else if (context instanceof LuneParser.BlockStatementContext c) {
-            analyze(c);
+            visit(c);
         } else if (context instanceof LuneParser.WhileStatementContext c) {
-            analyze(c);
+            visit(c);
         } else if (context instanceof LuneParser.RepeatStatementContext c) {
-            analyze(c);
+            visit(c);
         } else if (context instanceof LuneParser.IfStatementContext c) {
-            analyze(c);
+            visit(c);
         } else if (context instanceof LuneParser.NumericForStatementContext c) {
-            analyze(c);
+            visit(c);
         } else if (context instanceof LuneParser.GenericForStatementContext c) {
-            analyze(c);
+            visit(c);
         } else if (context instanceof LuneParser.FunctionStatementContext c) {
-            analyze(c);
+            visit(c);
         } else if (context instanceof LuneParser.LocalFunctionStatementContext c) {
-            analyze(c);
+            visit(c);
         } else if (context instanceof LuneParser.LocalStatementContext c) {
-            analyze(c);
+            visit(c);
         } else {
             throw new ClassCastException();
         }
     }
 
-    private Instruction analyze(LuneParser.NameExpressionContext context) {
+    private Instruction visit(LuneParser.NameExpressionContext context) {
         var name = context.name.getText();
 
         for (var nextScope = scope; nextScope != null; nextScope = nextScope.parentScope) {
             var local = nextScope.bindings.get(name);
             if (local != null) {
-                return append(new LocalLoadInstruction(local));
+                return append(attachSourceRange(new LocalLoadInstruction(local), context));
             }
         }
 
         for (var nextScope = scope; nextScope != null; nextScope = scope.parentScope) {
             var envLocal = nextScope.bindings.get("_ENV");
             if (envLocal != null) {
-                var env = append(new LocalLoadInstruction(envLocal));
-                var key = append(new StringConstantInstruction(name.getBytes(StandardCharsets.UTF_8)));
-                return append(new BinaryOpInstruction(BinaryOp.Index, env, key));
+                var env = append(attachSourceRange(new LocalLoadInstruction(envLocal), context));
+                var key = append(attachSourceRange(new StringConstantInstruction(name.getBytes(StandardCharsets.UTF_8)), context));
+                return append(attachSourceRange(new BinaryOpInstruction(BinaryOp.Index, env, key), context));
             }
         }
 
         throw new AssertionError();
     }
 
-    private Instruction analyze(LuneParser.ParenthesizedExpressionContext context) {
-        return analyze(context.wrapped);
+    private Instruction visit(LuneParser.ParenthesizedExpressionContext context) {
+        return visit(context.wrapped);
     }
 
-    private Instruction analyze(LuneParser.IndexExpressionContext context) {
-        var receiver = analyze(context.receiver);
-        var key = analyze(context.key);
-        return append(new BinaryOpInstruction(BinaryOp.Index, receiver, key));
+    private Instruction visit(LuneParser.IndexExpressionContext context) {
+        var receiver = visit(context.receiver);
+        var key = visit(context.key);
+        return append(attachSourceRange(new BinaryOpInstruction(BinaryOp.Index, receiver, key), context));
     }
 
-    private Instruction analyze(LuneParser.MemberExpressionContext context) {
-        var receiver = analyze(context.receiver);
-        var key = append(new StringConstantInstruction(context.key.getText().getBytes(StandardCharsets.UTF_8)));
-        return append(new BinaryOpInstruction(BinaryOp.Index, receiver, key));
+    private Instruction visit(LuneParser.MemberExpressionContext context) {
+        var receiver = visit(context.receiver);
+        var key = append(attachSourceRange(new StringConstantInstruction(context.key.getText().getBytes(StandardCharsets.UTF_8)), context.key));
+        return append(attachSourceRange(new BinaryOpInstruction(BinaryOp.Index, receiver, key), context));
     }
 
-    private Instruction analyze(LuneParser.CallExpressionContext context, boolean allowMultipleResults) {
+    private Instruction visit(LuneParser.CallExpressionContext context, boolean allowMultipleResults) {
         throw new UnsupportedOperationException("TODO");
     }
 
-    private Instruction analyze(LuneParser.PrefixExpressionContext context, boolean allowMultipleResults) {
+    private Instruction visit(LuneParser.PrefixExpressionContext context, boolean allowMultipleResults) {
         if (context instanceof LuneParser.NameExpressionContext c) {
-            return analyze(c);
+            return visit(c);
         } else if (context instanceof LuneParser.ParenthesizedExpressionContext c) {
-            return analyze(c);
+            return visit(c);
         } else if (context instanceof LuneParser.IndexExpressionContext c) {
-            return analyze(c);
+            return visit(c);
         } else if (context instanceof LuneParser.MemberExpressionContext c) {
-            return analyze(c);
+            return visit(c);
         } else if (context instanceof LuneParser.CallExpressionContext c) {
-            return analyze(c, allowMultipleResults);
+            return visit(c, allowMultipleResults);
         } else {
             throw new ClassCastException();
         }
     }
 
-    private Instruction analyze(LuneParser.PrefixExpressionContext context) {
-        return analyze(context, false);
+    private Instruction visit(LuneParser.PrefixExpressionContext context) {
+        return visit(context, false);
     }
 
-    private Instruction analyze(LuneParser.NilExpressionContext context) {
-        return append(new NilConstantInstruction());
+    private Instruction visit(LuneParser.NilExpressionContext context) {
+        return append(attachSourceRange(new NilConstantInstruction(), context));
     }
 
-    private Instruction analyze(LuneParser.FalseExpressionContext context) {
-        return append(new BooleanConstantInstruction(false));
+    private Instruction visit(LuneParser.FalseExpressionContext context) {
+        return append(attachSourceRange(new BooleanConstantInstruction(false), context));
     }
 
-    private Instruction analyze(LuneParser.TrueExpressionContext context) {
-        return append(new BooleanConstantInstruction(true));
+    private Instruction visit(LuneParser.TrueExpressionContext context) {
+        return append(attachSourceRange(new BooleanConstantInstruction(true), context));
     }
 
-    private Instruction analyze(LuneParser.DecimalIntegerExpressionContext context) {
+    private Instruction visit(LuneParser.DecimalIntegerExpressionContext context) {
         var text = context.token.getText();
         Instruction instruction;
 
@@ -427,10 +512,10 @@ public final class SemanticAnalyzer {
             instruction = new DoubleConstantInstruction(parseDouble(text));
         }
 
-        return append(instruction);
+        return append(attachSourceRange(instruction, context));
     }
 
-    private Instruction analyze(LuneParser.HexadecimalIntegerExpressionContext context) {
+    private Instruction visit(LuneParser.HexadecimalIntegerExpressionContext context) {
         var text = context.token.getText().replaceFirst("0[xX]", "");
         long value;
 
@@ -440,92 +525,154 @@ public final class SemanticAnalyzer {
             value = new BigInteger(text, 16).longValue();
         }
 
-        return append(new LongConstantInstruction(value));
+        return append(attachSourceRange(new LongConstantInstruction(value), context));
     }
 
-    private Instruction analyze(LuneParser.DecimalFloatExpressionContext context) {
-        return append(new DoubleConstantInstruction(parseDouble(context.token.getText())));
+    private Instruction visit(LuneParser.DecimalFloatExpressionContext context) {
+        return append(attachSourceRange(new DoubleConstantInstruction(parseDouble(context.token.getText())), context));
     }
 
-    private Instruction analyze(LuneParser.HexadecimalFloatExpressionContext context) {
-        return append(new DoubleConstantInstruction(parseDouble(context.token.getText())));
+    private Instruction visit(LuneParser.HexadecimalFloatExpressionContext context) {
+        return append(attachSourceRange(new DoubleConstantInstruction(parseDouble(context.token.getText())), context));
     }
 
-    private Instruction analyze(LuneParser.ShortLiteralStringExpressionContext context) {
-        return append(new StringConstantInstruction(parseShortLiteralString(context.token)));
+    private Instruction visit(LuneParser.ShortLiteralStringExpressionContext context) {
+        return append(attachSourceRange(new StringConstantInstruction(parseShortLiteralString(context.token)), context));
     }
 
-    private Instruction analyze(LuneParser.LongLiteralStringExpressionContext context) {
-        return append(new StringConstantInstruction(parseLongLiteralString(context.token)));
+    private Instruction visit(LuneParser.LongLiteralStringExpressionContext context) {
+        return append(attachSourceRange(new StringConstantInstruction(parseLongLiteralString(context.token)), context));
     }
 
-    private Instruction analyze(LuneParser.VarargsExpressionContext context) {
+    private Instruction visit(LuneParser.VarargsExpressionContext context) {
         throw new UnsupportedOperationException("TODO");
     }
 
-    private Instruction analyze(LuneParser.TableExpressionContext context) {
-        return analyze(context.table);
+    private Instruction visit(LuneParser.TableExpressionContext context) {
+        return visit(context.table);
     }
 
-    private Instruction analyze(LuneParser.FunctionExpressionContext context) {
+    private Instruction visit(LuneParser.FunctionExpressionContext context) {
         throw new UnsupportedOperationException("TODO");
     }
 
-    private Instruction analyze(LuneParser.PrefixExpressionExpressionContext context, boolean allowMultipleResults) {
-        return analyze(context.wrapped, allowMultipleResults);
+    private Instruction visit(LuneParser.PrefixExpressionExpressionContext context, boolean allowMultipleResults) {
+        return visit(context.wrapped, allowMultipleResults);
     }
 
-    private Instruction analyze(LuneParser.PowerExpressionContext context) {
-        throw new UnsupportedOperationException("TODO");
+    private Instruction visit(LuneParser.PowerExpressionContext context) {
+        var lhs = visit(context.lhs);
+        var rhs = visit(context.rhs);
+        return append(attachSourceRange(new BinaryOpInstruction(BinaryOp.Power, lhs, rhs), context));
     }
 
-    private Instruction analyze(LuneParser.PrefixOperatorExpressionContext context) {
-        throw new UnsupportedOperationException("TODO");
+    private Instruction visit(LuneParser.PrefixOperatorExpressionContext context) {
+        return append(
+            attachSourceRange(
+                new UnaryOpInstruction(
+                    switch (context.operator.getType()) {
+                        case LuneParser.Not -> UnaryOp.Not;
+                        case LuneParser.Tilde -> UnaryOp.BitwiseNot;
+                        case LuneParser.Minus -> UnaryOp.Negate;
+                        case LuneParser.Pound -> UnaryOp.Length;
+                        default -> throw new AssertionError();
+                    },
+                    visit(context.operand)
+                ),
+                context
+            )
+        );
     }
 
-    private Instruction analyze(LuneParser.MultiplyDivideModuloExpressionContext context) {
-        throw new UnsupportedOperationException("TODO");
+    private Instruction visit(LuneParser.MultiplyDivideModuloExpressionContext context) {
+        var op = switch (context.operator.getType()) {
+            case LuneParser.Star -> BinaryOp.Multiply;
+            case LuneParser.Slash -> BinaryOp.Divide;
+            case LuneParser.Slash2 -> BinaryOp.FloorDivide;
+            case LuneParser.Percent -> BinaryOp.Modulo;
+            default -> throw new AssertionError();
+        };
+
+        var lhs = visit(context.lhs);
+        var rhs = visit(context.rhs);
+        return append(attachSourceRange(new BinaryOpInstruction(op, lhs, rhs), context));
     }
 
-    private Instruction analyze(LuneParser.AddSubtractExpressionContext context) {
-        throw new UnsupportedOperationException("TODO");
+    private Instruction visit(LuneParser.AddSubtractExpressionContext context) {
+        var op = switch (context.operator.getType()) {
+            case LuneParser.Plus -> BinaryOp.Add;
+            case LuneParser.Minus -> BinaryOp.Subtract;
+            default -> throw new AssertionError();
+        };
+
+        var lhs = visit(context.lhs);
+        var rhs = visit(context.rhs);
+        return append(attachSourceRange(new BinaryOpInstruction(op, lhs, rhs), context));
     }
 
-    private Instruction analyze(LuneParser.ConcatenateExpressionContext context) {
-        throw new UnsupportedOperationException("TODO");
+    private Instruction visit(LuneParser.ConcatenateExpressionContext context) {
+        var lhs = visit(context.lhs);
+        var rhs = visit(context.rhs);
+        return append(attachSourceRange(new BinaryOpInstruction(BinaryOp.Concatenate, lhs, rhs), context));
     }
 
-    private Instruction analyze(LuneParser.ShiftExpressionContext context) {
-        throw new UnsupportedOperationException("TODO");
+    private Instruction visit(LuneParser.ShiftExpressionContext context) {
+        var op = switch (context.operator.getType()) {
+            case LuneParser.LAngle2 -> BinaryOp.LeftShift;
+            case LuneParser.RAngle2 -> BinaryOp.RightShift;
+            default -> throw new AssertionError();
+        };
+
+        var lhs = visit(context.lhs);
+        var rhs = visit(context.rhs);
+        return append(attachSourceRange(new BinaryOpInstruction(op, lhs, rhs), context));
     }
 
-    private Instruction analyze(LuneParser.BitwiseAndExpressionContext context) {
-        throw new UnsupportedOperationException("TODO");
+    private Instruction visit(LuneParser.BitwiseAndExpressionContext context) {
+        var lhs = visit(context.lhs);
+        var rhs = visit(context.rhs);
+        return append(attachSourceRange(new BinaryOpInstruction(BinaryOp.BitwiseAnd, lhs, rhs), context));
     }
 
-    private Instruction analyze(LuneParser.BitwiseXOrExpressionContext context) {
-        throw new UnsupportedOperationException("TODO");
+    private Instruction visit(LuneParser.BitwiseXOrExpressionContext context) {
+        var lhs = visit(context.lhs);
+        var rhs = visit(context.rhs);
+        return append(attachSourceRange(new BinaryOpInstruction(BinaryOp.BitwiseXOr, lhs, rhs), context));
     }
 
-    private Instruction analyze(LuneParser.BitwiseOrExpressionContext context) {
-        throw new UnsupportedOperationException("TODO");
+    private Instruction visit(LuneParser.BitwiseOrExpressionContext context) {
+        var lhs = visit(context.lhs);
+        var rhs = visit(context.rhs);
+        return append(attachSourceRange(new BinaryOpInstruction(BinaryOp.BitwiseOr, lhs, rhs), context));
     }
 
-    private Instruction analyze(LuneParser.ComparisonExpressionContext context) {
-        throw new UnsupportedOperationException("TODO");
+    private Instruction visit(LuneParser.ComparisonExpressionContext context) {
+        var op = switch (context.operator.getType()) {
+            case LuneParser.LAngle -> BinaryOp.Less;
+            case LuneParser.RAngle -> BinaryOp.Greater;
+            case LuneParser.LAngleEquals -> BinaryOp.LessOrEqual;
+            case LuneParser.RAngleEquals -> BinaryOp.GreaterOrEqual;
+            case LuneParser.Equals2 -> BinaryOp.Equal;
+            case LuneParser.TildeEquals -> BinaryOp.NotEqual;
+            default -> throw new AssertionError();
+        };
+
+        var lhs = visit(context.lhs);
+        var rhs = visit(context.rhs);
+        return append(attachSourceRange(new BinaryOpInstruction(op, lhs, rhs), context));
     }
 
-    private Instruction analyze(LuneParser.AndExpressionContext context) {
+    private Instruction visit(LuneParser.AndExpressionContext context) {
         var result = new LocalVariable();
         var truePath = newBlock();
         var falsePath = newBlock();
         var convergedPath = newBlock();
 
-        var lhs = analyze(context.lhs);
+        var lhs = visit(context.lhs);
         append(new ConditionalBranchInstruction(lhs, truePath, falsePath));
 
         setCurrentBlock(truePath);
-        var rhs = analyze(context.rhs);
+        var rhs = visit(context.rhs);
         append(new LocalStoreInstruction(result, rhs));
         append(new UnconditionalBranchInstruction(convergedPath));
 
@@ -537,13 +684,13 @@ public final class SemanticAnalyzer {
         return append(new LocalLoadInstruction(result));
     }
 
-    private Instruction analyze(LuneParser.OrExpressionContext context) {
+    private Instruction visit(LuneParser.OrExpressionContext context) {
         var result = new LocalVariable();
         var truePath = newBlock();
         var falsePath = newBlock();
         var convergedPath = newBlock();
 
-        var lhs = analyze(context.lhs);
+        var lhs = visit(context.lhs);
         append(new ConditionalBranchInstruction(lhs, truePath, falsePath));
 
         setCurrentBlock(truePath);
@@ -551,7 +698,7 @@ public final class SemanticAnalyzer {
         append(new UnconditionalBranchInstruction(convergedPath));
 
         setCurrentBlock(falsePath);
-        var rhs = analyze(context.rhs);
+        var rhs = visit(context.rhs);
         append(new LocalStoreInstruction(result, rhs));
         append(new UnconditionalBranchInstruction(convergedPath));
 
@@ -559,64 +706,64 @@ public final class SemanticAnalyzer {
         return append(new LocalLoadInstruction(result));
     }
 
-    private Instruction analyze(LuneParser.ExpressionContext context, boolean allowMultipleResults) {
+    private Instruction visit(LuneParser.ExpressionContext context, boolean allowMultipleResults) {
         if (context instanceof LuneParser.NilExpressionContext c) {
-            return analyze(c);
+            return visit(c);
         } else if (context instanceof LuneParser.FalseExpressionContext c) {
-            return analyze(c);
+            return visit(c);
         } else if (context instanceof LuneParser.TrueExpressionContext c) {
-            return analyze(c);
+            return visit(c);
         } else if (context instanceof LuneParser.DecimalIntegerExpressionContext c) {
-            return analyze(c);
+            return visit(c);
         } else if (context instanceof LuneParser.HexadecimalIntegerExpressionContext c) {
-            return analyze(c);
+            return visit(c);
         } else if (context instanceof LuneParser.DecimalFloatExpressionContext c) {
-            return analyze(c);
+            return visit(c);
         } else if (context instanceof LuneParser.HexadecimalFloatExpressionContext c) {
-            return analyze(c);
+            return visit(c);
         } else if (context instanceof LuneParser.ShortLiteralStringExpressionContext c) {
-            return analyze(c);
+            return visit(c);
         } else if (context instanceof LuneParser.LongLiteralStringExpressionContext c) {
-            return analyze(c);
+            return visit(c);
         } else if (context instanceof LuneParser.VarargsExpressionContext c) {
-            return analyze(c);
+            return visit(c);
         } else if (context instanceof LuneParser.TableExpressionContext c) {
-            return analyze(c);
+            return visit(c);
         } else if (context instanceof LuneParser.FunctionExpressionContext c) {
-            return analyze(c);
+            return visit(c);
         } else if (context instanceof LuneParser.PrefixExpressionExpressionContext c) {
-            return analyze(c, allowMultipleResults);
+            return visit(c, allowMultipleResults);
         } else if (context instanceof LuneParser.PowerExpressionContext c) {
-            return analyze(c);
+            return visit(c);
         } else if (context instanceof LuneParser.PrefixOperatorExpressionContext c) {
-            return analyze(c);
+            return visit(c);
         } else if (context instanceof LuneParser.MultiplyDivideModuloExpressionContext c) {
-            return analyze(c);
+            return visit(c);
         } else if (context instanceof LuneParser.AddSubtractExpressionContext c) {
-            return analyze(c);
+            return visit(c);
         } else if (context instanceof LuneParser.ConcatenateExpressionContext c) {
-            return analyze(c);
+            return visit(c);
         } else if (context instanceof LuneParser.ShiftExpressionContext c) {
-            return analyze(c);
+            return visit(c);
         } else if (context instanceof LuneParser.BitwiseAndExpressionContext c) {
-            return analyze(c);
+            return visit(c);
         } else if (context instanceof LuneParser.BitwiseXOrExpressionContext c) {
-            return analyze(c);
+            return visit(c);
         } else if (context instanceof LuneParser.BitwiseOrExpressionContext c) {
-            return analyze(c);
+            return visit(c);
         } else if (context instanceof LuneParser.ComparisonExpressionContext c) {
-            return analyze(c);
+            return visit(c);
         } else if (context instanceof LuneParser.AndExpressionContext c) {
-            return analyze(c);
+            return visit(c);
         } else if (context instanceof LuneParser.OrExpressionContext c) {
-            return analyze(c);
+            return visit(c);
         } else {
             throw new ClassCastException();
         }
     }
 
-    private Instruction analyze(LuneParser.ExpressionContext context) {
-        return analyze(context, false);
+    private Instruction visit(LuneParser.ExpressionContext context) {
+        return visit(context, false);
     }
 
     private static final class LocalScope {

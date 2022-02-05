@@ -4,6 +4,11 @@ public final class UnaryOpInstruction extends Instruction {
     UnaryOp op;
     Instruction operand;
 
+    public UnaryOpInstruction(UnaryOp op, Instruction operand) {
+        setOp(op);
+        setOperand(operand);
+    }
+
     public Instruction getOperand() {
         return operand;
     }
