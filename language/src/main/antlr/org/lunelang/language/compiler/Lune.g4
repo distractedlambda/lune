@@ -62,7 +62,7 @@ Dot2: '..';
 Dot3: '...';
 
 Whitespace:
-    [\f\n\r\t\u{b}\p{Zl}\p{Zp}\p{Zs}] -> skip;
+    [ \f\n\r\t\u{b}] -> skip;
 
 fragment NonDigitNameCharacter:
     [\p{Ll}\p{Lm}\p{Lo}\p{Lt}\p{Lu}\p{Mc}\p{Me}\p{Mn}\p{Nl}\p{Pc}];
@@ -70,9 +70,18 @@ fragment NonDigitNameCharacter:
 Name:
     NonDigitNameCharacter (NonDigitNameCharacter | [\p{Nd}\p{No}])*;
 
+fragment ShortLiteralStringEscape:
+    [abfnrtv\\"']
+  | '\r' '\n'?
+  | '\n' '\r'?
+  | 'z' Whitespace*
+  | 'x' HexadecimalDigit HexadecimalDigit
+  | 'd' DecimalDigit DecimalDigit? DecimalDigit?
+  | 'u{' HexadecimalDigit+ '}';
+
 ShortLiteralString:
-    '"' (~[\\"] | '\\' .)* '"'
-  | '\'' (~[\\'] | '\\' .)* '\'';
+    '"' (~[\\"\r\n] | '\\' ShortLiteralStringEscape)* '"'
+  | '\'' (~[\\'\r\n] | '\\' ShortLiteralStringEscape)* '\'';
 
 fragment LongBracketsBody:
     '=' LongBracketsBody '='

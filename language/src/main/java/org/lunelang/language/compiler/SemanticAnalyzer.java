@@ -1,11 +1,7 @@
 package org.lunelang.language.compiler;
 
-import org.antlr.v4.runtime.BaseErrorListener;
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.RecognitionException;
-import org.antlr.v4.runtime.Recognizer;
+import com.oracle.truffle.api.source.Source;
 import org.antlr.v4.runtime.Token;
-import org.antlr.v4.runtime.misc.Interval;
 import org.graalvm.collections.EconomicMap;
 import org.graalvm.collections.Pair;
 
@@ -14,29 +10,24 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.lang.Character.isDigit;
+import static java.lang.Character.isHighSurrogate;
+import static java.lang.Character.isLowSurrogate;
+import static java.lang.Character.toCodePoint;
 import static java.lang.Double.parseDouble;
+import static java.lang.Integer.parseInt;
 import static java.lang.Long.parseLong;
+import static java.util.Objects.requireNonNull;
 
 public final class SemanticAnalyzer {
-    private final ShortLiteralStringLexer shortLiteralStringLexer = new ShortLiteralStringLexer(null);
+    private final Source source;
+    private final String sourceString;
     private LocalScope scope = new LocalScope(null);
     private FunctionScope function = new FunctionScope();
 
-    public SemanticAnalyzer() {
-        shortLiteralStringLexer.removeErrorListeners();
-        shortLiteralStringLexer.addErrorListener(new BaseErrorListener() {
-            @Override
-            public void syntaxError(
-                Recognizer<?, ?> recognizer,
-                Object offendingSymbol,
-                int line,
-                int charPositionInLine,
-                String msg,
-                RecognitionException e
-            ) {
-                throw new UnsupportedOperationException("TODO handle string lexing errors");
-            }
-        });
+    public SemanticAnalyzer(Source source) {
+        this.source = requireNonNull(source);
+        this.sourceString = source.toString();
     }
 
     private Block newBlock() {
@@ -51,21 +42,123 @@ public final class SemanticAnalyzer {
         return function.currentBlock.append(instruction);
     }
 
-    private byte[] parseShortLiteralString(Token literal) {
-        var contents = literal.getInputStream().getText(Interval.of(literal.getStartIndex(), literal.getStopIndex()));
-        shortLiteralStringLexer.setInputStream(CharStreams.fromString(contents));
-
+    private byte[] parseShortLiteralString(Token token) {
         var parsed = new ByteVector();
-        tokenLoop: for (;;) {
-            var token = shortLiteralStringLexer.nextToken();
-            switch (token.getType()) {
-                case ShortLiteralStringLexer.EOF -> {
-                    break tokenLoop;
-                }
 
-                
+        var nextCharIndex = token.getStartIndex() + 1;
+        while (nextCharIndex != token.getStopIndex()) {
+            var c = sourceString.charAt(nextCharIndex++);
+            if (c == '\\') {
+                switch (sourceString.charAt(nextCharIndex++)) {
+                    case 'a' -> parsed.appendByte((byte) 0x07);
+                    case 'b' -> parsed.appendByte((byte) '\b');
+                    case 'f' -> parsed.appendByte((byte) '\f');
+                    case 'n' -> parsed.appendByte((byte) '\n');
+                    case 'r' -> parsed.appendByte((byte) '\r');
+                    case 't' -> parsed.appendByte((byte) '\t');
+                    case 'v' -> parsed.appendByte((byte) 0x0b);
+                    case '\\' -> parsed.appendByte((byte) '\\');
+                    case '"' -> parsed.appendByte((byte) '"');
+                    case '\'' -> parsed.appendByte((byte) '\'');
+
+                    case '\r' -> {
+                        if (sourceString.charAt(nextCharIndex) == '\n') {
+                            nextCharIndex++;
+                        }
+                        parsed.appendByte((byte) '\n');
+                    }
+
+                    case '\n' -> {
+                        if (sourceString.charAt(nextCharIndex) == '\r') {
+                            nextCharIndex++;
+                        }
+                        parsed.appendByte((byte) '\n');
+                    }
+
+                    case 'z' -> {
+                        skipWhitespace: for (;;) {
+                            switch (sourceString.charAt(nextCharIndex)) {
+                                case ' ', '\f', '\n', '\r', '\t', 0x0b -> nextCharIndex++;
+                                default -> {
+                                    break skipWhitespace;
+                                }
+                            }
+                        }
+                    }
+
+                    case 'x' -> {
+                        var b = parseInt(sourceString, nextCharIndex, (nextCharIndex += 2), 16);
+                        parsed.appendByte((byte) b);
+                    }
+
+                    case 'd' -> {
+                        var firstIndex = nextCharIndex;
+
+                        if (isDigit(sourceString.charAt(++nextCharIndex)) && isDigit(sourceString.charAt(++nextCharIndex))) {
+                            nextCharIndex++;
+                        }
+
+                        var b = parseInt(sourceString, firstIndex, nextCharIndex, 16);
+                        if (b > 0xff) {
+                            throw new UnsupportedOperationException("TODO handle this");
+                        }
+
+                        parsed.appendByte((byte) b);
+                    }
+
+                    case 'u' -> {
+                        var firstIndex = ++nextCharIndex;
+                        while (++nextCharIndex != '}');
+                        var cp = parseInt(sourceString, firstIndex, nextCharIndex, 16);
+                        parsed.appendUTF8(cp);
+                    }
+                }
+            } else if (isHighSurrogate(c) && isLowSurrogate(sourceString.charAt(nextCharIndex))) {
+                parsed.appendUTF8(toCodePoint(c, sourceString.charAt(nextCharIndex++)));
+            } else {
+                parsed.appendUTF8(c);
             }
         }
+
+        return parsed.toByteArray();
+    }
+
+    private byte[] parseLongLiteralString(Token token) {
+        var parsed = new ByteVector();
+        var bracketDepth = 0;
+
+        var nextCharIndex = token.getStartIndex() + 1;
+        while (sourceString.charAt(nextCharIndex++) == '=') {
+            bracketDepth++;
+        }
+
+        nextCharIndex++;
+
+        if (sourceString.charAt(nextCharIndex) == '\n') {
+            nextCharIndex++;
+        }
+
+        var endIndex = token.getStopIndex() - bracketDepth - 1;
+        while (nextCharIndex != endIndex) {
+            var c = sourceString.charAt(nextCharIndex++);
+            if (c == '\r') {
+                if (sourceString.charAt(nextCharIndex) == '\n') {
+                    nextCharIndex++;
+                }
+                parsed.appendByte((byte) '\n');
+            } else if (c == '\n') {
+                if (sourceString.charAt(nextCharIndex) == '\r') {
+                    nextCharIndex++;
+                }
+                parsed.appendByte((byte) '\r');
+            } else if (isHighSurrogate(c) && isLowSurrogate(sourceString.charAt(nextCharIndex))) {
+                parsed.appendUTF8(toCodePoint(c, sourceString.charAt(nextCharIndex++)));
+            } else {
+                parsed.appendUTF8(c);
+            }
+        }
+
+        return parsed.toByteArray();
     }
 
     private Instruction analyze(LuneParser.TableConstructorContext context) {
@@ -359,11 +452,11 @@ public final class SemanticAnalyzer {
     }
 
     private Instruction analyze(LuneParser.ShortLiteralStringExpressionContext context) {
-        throw new UnsupportedOperationException("TODO");
+        return append(new StringConstantInstruction(parseShortLiteralString(context.token)));
     }
 
     private Instruction analyze(LuneParser.LongLiteralStringExpressionContext context) {
-        throw new UnsupportedOperationException("TODO");
+        return append(new StringConstantInstruction(parseLongLiteralString(context.token)));
     }
 
     private Instruction analyze(LuneParser.VarargsExpressionContext context) {
