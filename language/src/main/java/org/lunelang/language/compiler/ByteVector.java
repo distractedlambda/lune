@@ -126,6 +126,53 @@ public final class ByteVector {
         size += 8;
     }
 
+    public void appendUTF8(int codePoint) {
+        if (codePoint < 0) {
+            throw new IllegalArgumentException("Illegal Unicode scalar value: " + codePoint);
+        } else if (codePoint < 0x80) {
+            appendByte((byte) codePoint);
+        } else if (codePoint < 0x800) {
+            growIfNeeded(2);
+            buffer[size] = (byte) (0xc0 | (codePoint >> 6));
+            buffer[size + 1] = (byte) (0x80 | (codePoint & 0x3f));
+            size += 2;
+        } else if (codePoint < 0x10000) {
+            growIfNeeded(3);
+            buffer[size] = (byte) (0xe0 | (codePoint >> 12));
+            buffer[size + 1] = (byte) (0x80 | ((codePoint >> 6) & 0x3f));
+            buffer[size + 2] = (byte) (0x80 | (codePoint & 0x3f));
+            size += 3;
+        } else if (codePoint < 0x200000) {
+            growIfNeeded(4);
+            buffer[size] = (byte) (0xf0 | (codePoint >> 18));
+            buffer[size + 1] = (byte) (0x80 | ((codePoint >> 12) & 0x3f));
+            buffer[size + 2] = (byte) (0x80 | ((codePoint >> 6) & 0x3f));
+            buffer[size + 3] = (byte) (0x80 | (codePoint & 0x3f));
+            size += 4;
+        } else if (codePoint < 0x4000000) {
+            growIfNeeded(5);
+            buffer[size] = (byte) (0xf8 | (codePoint >> 24));
+            buffer[size + 1] = (byte) (0x80 | ((codePoint >> 18) & 0x3f));
+            buffer[size + 2] = (byte) (0x80 | ((codePoint >> 12) & 0x3f));
+            buffer[size + 3] = (byte) (0x80 | ((codePoint >> 6) & 0x3f));
+            buffer[size + 4] = (byte) (0x80 | (codePoint & 0x3f));
+            size += 5;
+        } else {
+            growIfNeeded(6);
+            buffer[size] = (byte) (0xfc | (codePoint >> 30));
+            buffer[size + 1] = (byte) (0x80 | ((codePoint >> 24) & 0x3f));
+            buffer[size + 2] = (byte) (0x80 | ((codePoint >> 18) & 0x3f));
+            buffer[size + 3] = (byte) (0x80 | ((codePoint >> 12) & 0x3f));
+            buffer[size + 4] = (byte) (0x80 | ((codePoint >> 6) & 0x3f));
+            buffer[size + 5] = (byte) (0x80 | (codePoint & 0x3f));
+            size += 6;
+        }
+    }
+
+    public void appendUTF8(CharSequence charSequence) {
+        charSequence.codePoints().forEach(this::appendUTF8);
+    }
+
     public byte[] toByteArray() {
         return Arrays.copyOf(buffer, size);
     }

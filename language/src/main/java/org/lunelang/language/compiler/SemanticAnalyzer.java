@@ -1,5 +1,11 @@
 package org.lunelang.language.compiler;
 
+import org.antlr.v4.runtime.BaseErrorListener;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.Recognizer;
+import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.misc.Interval;
 import org.graalvm.collections.EconomicMap;
 import org.graalvm.collections.Pair;
 
@@ -12,8 +18,26 @@ import static java.lang.Double.parseDouble;
 import static java.lang.Long.parseLong;
 
 public final class SemanticAnalyzer {
+    private final ShortLiteralStringLexer shortLiteralStringLexer = new ShortLiteralStringLexer(null);
     private LocalScope scope = new LocalScope(null);
     private FunctionScope function = new FunctionScope();
+
+    public SemanticAnalyzer() {
+        shortLiteralStringLexer.removeErrorListeners();
+        shortLiteralStringLexer.addErrorListener(new BaseErrorListener() {
+            @Override
+            public void syntaxError(
+                Recognizer<?, ?> recognizer,
+                Object offendingSymbol,
+                int line,
+                int charPositionInLine,
+                String msg,
+                RecognitionException e
+            ) {
+                throw new UnsupportedOperationException("TODO handle string lexing errors");
+            }
+        });
+    }
 
     private Block newBlock() {
         return new Block(function.emittedFunction);
@@ -25,6 +49,23 @@ public final class SemanticAnalyzer {
 
     private <I extends Instruction> I append(I instruction) {
         return function.currentBlock.append(instruction);
+    }
+
+    private byte[] parseShortLiteralString(Token literal) {
+        var contents = literal.getInputStream().getText(Interval.of(literal.getStartIndex(), literal.getStopIndex()));
+        shortLiteralStringLexer.setInputStream(CharStreams.fromString(contents));
+
+        var parsed = new ByteVector();
+        tokenLoop: for (;;) {
+            var token = shortLiteralStringLexer.nextToken();
+            switch (token.getType()) {
+                case ShortLiteralStringLexer.EOF -> {
+                    break tokenLoop;
+                }
+
+                
+            }
+        }
     }
 
     private Instruction analyze(LuneParser.TableConstructorContext context) {
