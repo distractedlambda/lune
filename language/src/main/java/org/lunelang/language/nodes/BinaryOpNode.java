@@ -1,26 +1,16 @@
 package org.lunelang.language.nodes;
 
+import com.oracle.truffle.api.dsl.NodeField;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 import static com.oracle.truffle.api.CompilerDirectives.shouldNotReachHere;
 
-
+@NodeField(name = "lhsSlot", type = int.class)
+@NodeField(name = "rhsSlot", type = int.class)
 public abstract class BinaryOpNode extends SingleResultInstructionNode {
-    private final int lhsSlot, rhsSlot;
+    protected abstract int getLhsSlot();
 
-    protected BinaryOpNode(int resultSlot, int lhsSlot, int rhsSlot) {
-        super(resultSlot);
-        this.lhsSlot = lhsSlot;
-        this.rhsSlot = rhsSlot;
-    }
-
-    protected final int getLhsSlot() {
-        return lhsSlot;
-    }
-
-    protected final int getRhsSlot() {
-        return rhsSlot;
-    }
+    protected abstract int getRhsSlot();
 
     @Override
     public final void execute(VirtualFrame frame) {

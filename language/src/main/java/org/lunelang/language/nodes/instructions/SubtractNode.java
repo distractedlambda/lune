@@ -3,10 +3,12 @@ package org.lunelang.language.nodes.instructions;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import org.lunelang.language.nodes.BinaryOpNode;
+import org.lunelang.language.nodes.InstructionNode;
 
 public abstract class SubtractNode extends BinaryOpNode {
-    protected SubtractNode(int resultSlot, int lhsSlot, int rhsSlot) {
-        super(resultSlot, lhsSlot, rhsSlot);
+    @Override
+    public final InstructionNode cloneUninitialized() {
+        return SubtractNodeGen.create(getResultSlot(), getLhsSlot(), getRhsSlot());
     }
 
     @Specialization

@@ -4,30 +4,31 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import org.lunelang.language.nodes.BinaryOpNode;
 import org.lunelang.language.nodes.InstructionNode;
+import org.lunelang.language.runtime.FloatingPoint;
 
-public abstract class MultiplyNode extends BinaryOpNode {
+public abstract class FloorDivideNode extends BinaryOpNode {
     @Override
     public final InstructionNode cloneUninitialized() {
-        return MultiplyNodeGen.create(getResultSlot(), getLhsSlot(), getRhsSlot());
+        return FloorDivideNodeGen.create(getResultSlot(), getLhsSlot(), getRhsSlot());
     }
 
     @Specialization
     protected void longLong(VirtualFrame frame, long lhs, long rhs) {
-        longResult(frame, lhs * rhs);
+        longResult(frame, Math.floorDiv(lhs, rhs));
     }
 
     @Specialization
     protected void longDouble(VirtualFrame frame, long lhs, double rhs) {
-        doubleResult(frame, lhs * rhs);
+        doubleDouble(frame, lhs, rhs);
     }
 
     @Specialization
     protected void doubleLong(VirtualFrame frame, double lhs, long rhs) {
-        doubleResult(frame, lhs * rhs);
+        doubleDouble(frame, lhs, rhs);
     }
 
     @Specialization
     protected void doubleDouble(VirtualFrame frame, double lhs, double rhs) {
-        doubleResult(frame, lhs * rhs);
+        doubleResult(frame, FloatingPoint.floorDivide(lhs, rhs));
     }
 }

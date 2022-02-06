@@ -1,17 +1,11 @@
 package org.lunelang.language.nodes;
 
+import com.oracle.truffle.api.dsl.NodeField;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
+@NodeField(name = "resultSlot", type = int.class)
 public abstract class SingleResultInstructionNode extends InstructionNode {
-    private final int resultSlot;
-
-    protected SingleResultInstructionNode(int resultSlot) {
-        this.resultSlot = resultSlot;
-    }
-
-    protected final int getResultSlot() {
-        return resultSlot;
-    }
+    protected abstract int getResultSlot();
 
     protected final void booleanResult(VirtualFrame frame, boolean value) {
         frame.setBoolean(getResultSlot(), value);

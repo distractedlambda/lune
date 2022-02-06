@@ -4,12 +4,14 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import org.lunelang.language.nodes.InstructionNode;
 import org.lunelang.language.nodes.UnaryOpNode;
 import org.lunelang.language.runtime.CaptureBox;
 
 public abstract class LocalLoadNode extends UnaryOpNode {
-    protected LocalLoadNode(int resultSlot, int operandSlot) {
-        super(resultSlot, operandSlot);
+    @Override
+    public final InstructionNode cloneUninitialized() {
+        return LocalLoadNodeGen.create(getResultSlot(), getOperandSlot());
     }
 
     @Specialization

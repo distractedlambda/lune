@@ -32,7 +32,7 @@ public abstract class IndexNode extends LuneNode {
             return Nil.getInstance();
         }
 
-        var indexMetavalue = metatables.getOrDefault(metatable, getContext().getIndexMetavalueKey(), Nil.getInstance());
+        var indexMetavalue = metatables.getOrDefault(metatable, getLanguage().getIndexMetavalueKey(), Nil.getInstance());
 
         if (isNil(indexMetavalue)) {
             return Nil.getInstance();

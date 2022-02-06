@@ -1,20 +1,13 @@
 package org.lunelang.language.nodes;
 
+import com.oracle.truffle.api.dsl.NodeField;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 import static com.oracle.truffle.api.CompilerDirectives.shouldNotReachHere;
 
+@NodeField(name = "operandSlot", type = int.class)
 public abstract class UnaryOpNode extends SingleResultInstructionNode {
-    private final int operandSlot;
-
-    protected UnaryOpNode(int resultSlot, int operandSlot) {
-        super(resultSlot);
-        this.operandSlot = operandSlot;
-    }
-
-    protected final int getOperandSlot() {
-        return operandSlot;
-    }
+    protected abstract int getOperandSlot();
 
     @Override
     public final void execute(VirtualFrame frame) {

@@ -8,6 +8,7 @@ import org.graalvm.collections.EconomicMap;
 import org.graalvm.collections.Pair;
 import org.lunelang.language.Bytecode;
 import org.lunelang.language.LuneLanguage;
+import org.lunelang.language.Todo;
 import org.lunelang.language.nodes.InstructionNode;
 
 import java.math.BigInteger;
@@ -24,6 +25,7 @@ import static java.lang.Double.parseDouble;
 import static java.lang.Integer.parseInt;
 import static java.lang.Long.parseLong;
 import static java.util.Objects.requireNonNull;
+import static org.lunelang.language.Todo.TODO;
 
 public final class ChunkCompiler {
     private final LuneLanguage language;
@@ -174,59 +176,61 @@ public final class ChunkCompiler {
     }
 
     private int visit(LuneParser.TableConstructorContext context) {
-        var table = new NewTableInstruction();
-        var keyValuePairs = new ArrayList<Pair<Instruction, Instruction>>();
+        // var table = new NewTableInstruction();
+        // var keyValuePairs = new ArrayList<Pair<Instruction, Instruction>>();
 
-        for (var i = 0; i < context.fields.size(); i++) {
-            var field = context.fields.get(i);
-            if (field instanceof LuneParser.IndexedFieldContext c) {
-                var key = visit(c.key);
-                var value = visit(c.value);
-                keyValuePairs.add(Pair.create(key, value));
-            } else if (field instanceof LuneParser.NamedFieldContext c) {
-                var key = new StringConstantInstruction(c.key.getText().getBytes(StandardCharsets.UTF_8));
-                var value = visit(c.value);
-                keyValuePairs.add(Pair.create(key, value));
-            } else if (field instanceof LuneParser.OrdinalFieldContext c) {
-                table.appendValue(visit(c.value, i == context.fields.size() - 1));
-            } else {
-                throw new ClassCastException();
-            }
-        }
+        // for (var i = 0; i < context.fields.size(); i++) {
+        //     var field = context.fields.get(i);
+        //     if (field instanceof LuneParser.IndexedFieldContext c) {
+        //         var key = visit(c.key);
+        //         var value = visit(c.value);
+        //         keyValuePairs.add(Pair.create(key, value));
+        //     } else if (field instanceof LuneParser.NamedFieldContext c) {
+        //         var key = new StringConstantInstruction(c.key.getText().getBytes(StandardCharsets.UTF_8));
+        //         var value = visit(c.value);
+        //         keyValuePairs.add(Pair.create(key, value));
+        //     } else if (field instanceof LuneParser.OrdinalFieldContext c) {
+        //         table.appendValue(visit(c.value, i == context.fields.size() - 1));
+        //     } else {
+        //         throw new ClassCastException();
+        //     }
+        // }
 
-        append(table);
-        for (var kv : keyValuePairs) {
-            append(new IndexedStoreInstruction(table, kv.getLeft(), kv.getRight()));
-        }
+        // append(table);
+        // for (var kv : keyValuePairs) {
+        //     append(new IndexedStoreInstruction(table, kv.getLeft(), kv.getRight()));
+        // }
 
-        return attachSourceRange(table, context);
+        // return attachSourceRange(table, context);
+        throw TODO();
     }
 
     private void visit(LuneParser.BlockContext context) {
-        for (var statement : context.statements) {
-            visit(statement);
-        }
+        // for (var statement : context.statements) {
+        //     visit(statement);
+        // }
 
-        if (context.ret != null) {
-            if (context.returnValues.size() == 1 &&
-                context.returnValues.get(0) instanceof LuneParser.PrefixExpressionExpressionContext c &&
-                c.wrapped instanceof LuneParser.CallExpressionContext callContext
-            ) {
-                throw new UnsupportedOperationException("TODO handle tail call");
-            } else {
-                var instruction = new ReturnInstruction();
+        // if (context.ret != null) {
+        //     if (context.returnValues.size() == 1 &&
+        //         context.returnValues.get(0) instanceof LuneParser.PrefixExpressionExpressionContext c &&
+        //         c.wrapped instanceof LuneParser.CallExpressionContext callContext
+        //     ) {
+        //         throw new UnsupportedOperationException("TODO handle tail call");
+        //     } else {
+        //         var instruction = new ReturnInstruction();
 
-                for (var i = 0; i < context.returnValues.size() - 1; i++) {
-                    instruction.appendValue(visit(context.returnValues.get(i)));
-                }
+        //         for (var i = 0; i < context.returnValues.size() - 1; i++) {
+        //             instruction.appendValue(visit(context.returnValues.get(i)));
+        //         }
 
-                if (!context.returnValues.isEmpty()) {
-                    instruction.appendValue(visit(context.returnValues.get(context.returnValues.size() - 1), true));
-                }
+        //         if (!context.returnValues.isEmpty()) {
+        //             instruction.appendValue(visit(context.returnValues.get(context.returnValues.size() - 1), true));
+        //         }
 
-                append(instruction);
-            }
-        }
+        //         append(instruction);
+        //     }
+        // }
+        throw TODO();
     }
 
     private void visit(LuneParser.EmptyStatementContext context) {
@@ -234,41 +238,44 @@ public final class ChunkCompiler {
     }
 
     private Consumer<Integer> visit(LuneParser.NamedVariableContext context) {
-        var name = context.name.getText();
+        throw TODO();
+        // var name = context.name.getText();
 
-        for (var nextScope = scope; nextScope != null; nextScope = nextScope.parentScope) {
-            var local = nextScope.bindings.get(name);
-            if (local != null) {
-                return value -> append(new LocalStoreInstruction(local, value));
-            }
-        }
+        // for (var nextScope = scope; nextScope != null; nextScope = nextScope.parentScope) {
+        //     var local = nextScope.bindings.get(name);
+        //     if (local != null) {
+        //         return value -> append(new LocalStoreInstruction(local, value));
+        //     }
+        // }
 
-        for (var nextScope = scope; nextScope != null; nextScope = scope.parentScope) {
-            var envLocal = nextScope.bindings.get("_ENV");
-            if (envLocal != null) {
-                var env = append(new LocalLoadInstruction(envLocal));
-                return value -> {
-                    var key = append(new StringConstantInstruction(name.getBytes(StandardCharsets.UTF_8)));
-                    append(new IndexedStoreInstruction(env, key, value));
-                };
-            }
-        }
+        // for (var nextScope = scope; nextScope != null; nextScope = scope.parentScope) {
+        //     var envLocal = nextScope.bindings.get("_ENV");
+        //     if (envLocal != null) {
+        //         var env = append(new LocalLoadInstruction(envLocal));
+        //         return value -> {
+        //             var key = append(new StringConstantInstruction(name.getBytes(StandardCharsets.UTF_8)));
+        //             append(new IndexedStoreInstruction(env, key, value));
+        //         };
+        //     }
+        // }
 
-        throw new AssertionError();
+        // throw new AssertionError();
     }
 
     private Consumer<Integer> visit(LuneParser.IndexedVariableContext context) {
-        var receiver = visit(context.receiver);
-        var key = visit(context.key);
-        return value -> append(new IndexedStoreInstruction(receiver, key, value));
+        // var receiver = visit(context.receiver);
+        // var key = visit(context.key);
+        // return value -> append(new IndexedStoreInstruction(receiver, key, value));
+        throw TODO();
     }
 
     private Consumer<Integer> visit(LuneParser.MemberVariableContext context) {
-        var receiver = visit(context.receiver);
-        return value -> {
-            var key = append(new StringConstantInstruction(context.key.getText().getBytes(StandardCharsets.UTF_8)));
-            append(new IndexedStoreInstruction(receiver, key, value));
-        };
+        // var receiver = visit(context.receiver);
+        // return value -> {
+        //     var key = append(new StringConstantInstruction(context.key.getText().getBytes(StandardCharsets.UTF_8)));
+        //     append(new IndexedStoreInstruction(receiver, key, value));
+        // };
+        throw TODO();
     }
 
     private Consumer<Integer> visit(LuneParser.VariableContext context) {
@@ -284,24 +291,25 @@ public final class ChunkCompiler {
     }
 
     private void visit(LuneParser.AssignmentStatementContext context) {
-        var assigners = context.lhs.stream().map(this::visit).toList();
-        var values = new Instruction[context.rhs.size()];
+        // var assigners = context.lhs.stream().map(this::visit).toList();
+        // var values = new Instruction[context.rhs.size()];
 
-        for (var i = 0; i < values.length; i++) {
-            values[i] = visit(context.rhs.get(i), i == values.length - 1);
-        }
+        // for (var i = 0; i < values.length; i++) {
+        //     values[i] = visit(context.rhs.get(i), i == values.length - 1);
+        // }
 
-        for (var i = 0; i < assigners.size(); i++) {
-            Instruction assignedValue;
+        // for (var i = 0; i < assigners.size(); i++) {
+        //     Instruction assignedValue;
 
-            if (i < values.length - 1) {
-                assignedValue = values[i];
-            } else {
-                assignedValue = append(new ExtractScalarInstruction(values[values.length - 1], i - values.length + 1));
-            }
+        //     if (i < values.length - 1) {
+        //         assignedValue = values[i];
+        //     } else {
+        //         assignedValue = append(new ExtractScalarInstruction(values[values.length - 1], i - values.length + 1));
+        //     }
 
-            assigners.get(i).accept(assignedValue);
-        }
+        //     assigners.get(i).accept(assignedValue);
+        // }
+        throw TODO();
     }
 
     private void visit(LuneParser.FunctionCallStatementContext context) {
@@ -311,20 +319,21 @@ public final class ChunkCompiler {
     private void visit(LuneParser.LabelStatementContext context) {
         // FIXME: rewrite this
 
-        var name = context.name.getText();
-        var labeledBlock = newBlock();
+        // var name = context.name.getText();
+        // var labeledBlock = newBlock();
 
-        if (scope.labels.put(name, labeledBlock) != null) {
-            throw new UnsupportedOperationException("TODO handle reporting this error");
-        }
+        // if (scope.labels.put(name, labeledBlock) != null) {
+        //     throw new UnsupportedOperationException("TODO handle reporting this error");
+        // }
 
-        var unresolvedLabels = scope.unresolvedLabels.get(name);
-        if (unresolvedLabels != null) {
-            unresolvedLabels.forEach(it -> it.setTarget(labeledBlock));
-        }
+        // var unresolvedLabels = scope.unresolvedLabels.get(name);
+        // if (unresolvedLabels != null) {
+        //     unresolvedLabels.forEach(it -> it.setTarget(labeledBlock));
+        // }
 
-        append(new UnconditionalBranchInstruction(labeledBlock));
-        setCurrentBlock(labeledBlock);
+        // append(new UnconditionalBranchInstruction(labeledBlock));
+        // setCurrentBlock(labeledBlock);
+        throw TODO();
     }
 
     private void visit(LuneParser.BreakStatementContext context) {
@@ -334,24 +343,26 @@ public final class ChunkCompiler {
     private void visit(LuneParser.GotoStatementContext context) {
         // fixme: rewrite this
 
-        var target = context.target.getText();
-        var branch = append(new UnconditionalBranchInstruction(null));
+        // var target = context.target.getText();
+        // var branch = append(new UnconditionalBranchInstruction(null));
 
-        var targetBlock = scope.labels.get(target);
-        if (targetBlock != null) {
-            branch.setTarget(targetBlock);
-        } else {
-            var existingList = scope.unresolvedLabels.get(target);
-            if (existingList != null) {
-                existingList.add(branch);
-            } else {
-                var list = new ArrayList<UnconditionalBranchInstruction>();
-                list.add(branch);
-                scope.unresolvedLabels.put(target, list);
-            }
-        }
+        // var targetBlock = scope.labels.get(target);
+        // if (targetBlock != null) {
+        //     branch.setTarget(targetBlock);
+        // } else {
+        //     var existingList = scope.unresolvedLabels.get(target);
+        //     if (existingList != null) {
+        //         existingList.add(branch);
+        //     } else {
+        //         var list = new ArrayList<UnconditionalBranchInstruction>();
+        //         list.add(branch);
+        //         scope.unresolvedLabels.put(target, list);
+        //     }
+        // }
 
-        setCurrentBlock(newBlock());
+        // setCurrentBlock(newBlock());
+
+        throw TODO();
     }
 
     private void visit(LuneParser.BlockStatementContext context) {
@@ -427,25 +438,26 @@ public final class ChunkCompiler {
     }
 
     private int visit(LuneParser.NameExpressionContext context) {
-        var name = context.name.getText();
+        // var name = context.name.getText();
 
-        for (var nextScope = scope; nextScope != null; nextScope = nextScope.parentScope) {
-            var local = nextScope.bindings.get(name);
-            if (local != null) {
-                return append(attachSourceRange(new LocalLoadInstruction(local), context));
-            }
-        }
+        // for (var nextScope = scope; nextScope != null; nextScope = nextScope.parentScope) {
+        //     var local = nextScope.bindings.get(name);
+        //     if (local != null) {
+        //         return append(attachSourceRange(new LocalLoadInstruction(local), context));
+        //     }
+        // }
 
-        for (var nextScope = scope; nextScope != null; nextScope = scope.parentScope) {
-            var envLocal = nextScope.bindings.get("_ENV");
-            if (envLocal != null) {
-                var env = append(attachSourceRange(new LocalLoadInstruction(envLocal), context));
-                var key = append(attachSourceRange(new StringConstantInstruction(name.getBytes(StandardCharsets.UTF_8)), context));
-                return append(attachSourceRange(new BinaryOpInstruction(BinaryOp.Index, env, key), context));
-            }
-        }
+        // for (var nextScope = scope; nextScope != null; nextScope = scope.parentScope) {
+        //     var envLocal = nextScope.bindings.get("_ENV");
+        //     if (envLocal != null) {
+        //         var env = append(attachSourceRange(new LocalLoadInstruction(envLocal), context));
+        //         var key = append(attachSourceRange(new StringConstantInstruction(name.getBytes(StandardCharsets.UTF_8)), context));
+        //         return append(attachSourceRange(new BinaryOpInstruction(BinaryOp.Index, env, key), context));
+        //     }
+        // }
 
-        throw new AssertionError();
+        // throw new AssertionError();
+        throw TODO();
     }
 
     private int visit(LuneParser.ParenthesizedExpressionContext context) {
@@ -453,15 +465,17 @@ public final class ChunkCompiler {
     }
 
     private int visit(LuneParser.IndexExpressionContext context) {
-        var receiver = visit(context.receiver);
-        var key = visit(context.key);
-        return append(attachSourceRange(new BinaryOpInstruction(BinaryOp.Index, receiver, key), context));
+        // var receiver = visit(context.receiver);
+        // var key = visit(context.key);
+        // return append(attachSourceRange(new BinaryOpInstruction(BinaryOp.Index, receiver, key), context));
+        throw TODO();
     }
 
     private int visit(LuneParser.MemberExpressionContext context) {
-        var receiver = visit(context.receiver);
-        var key = append(attachSourceRange(new StringConstantInstruction(context.key.getText().getBytes(StandardCharsets.UTF_8)), context.key));
-        return append(attachSourceRange(new BinaryOpInstruction(BinaryOp.Index, receiver, key), context));
+        // var receiver = visit(context.receiver);
+        // var key = append(attachSourceRange(new StringConstantInstruction(context.key.getText().getBytes(StandardCharsets.UTF_8)), context.key));
+        // return append(attachSourceRange(new BinaryOpInstruction(BinaryOp.Index, receiver, key), context));
+        throw TODO();
     }
 
     private int visit(LuneParser.CallExpressionContext context, boolean allowMultipleResults) {
@@ -489,28 +503,32 @@ public final class ChunkCompiler {
     }
 
     private int visit(LuneParser.NilExpressionContext context) {
-        return append(attachSourceRange(new NilConstantInstruction(), context));
+        // return append(attachSourceRange(new NilConstantInstruction(), context));
+        throw TODO();
     }
 
     private int visit(LuneParser.FalseExpressionContext context) {
-        return append(attachSourceRange(new BooleanConstantInstruction(false), context));
+        // return append(attachSourceRange(new BooleanConstantInstruction(false), context));
+        throw TODO();
     }
 
     private int visit(LuneParser.TrueExpressionContext context) {
-        return append(attachSourceRange(new BooleanConstantInstruction(true), context));
+        // return append(attachSourceRange(new BooleanConstantInstruction(true), context));
+        throw TODO();
     }
 
     private int visit(LuneParser.DecimalIntegerExpressionContext context) {
-        var text = context.token.getText();
-        Instruction instruction;
+        // var text = context.token.getText();
+        // Instruction instruction;
 
-        try {
-            instruction = new LongConstantInstruction(parseLong(text));
-        } catch (NumberFormatException ignored) {
-            instruction = new DoubleConstantInstruction(parseDouble(text));
-        }
+        // try {
+        //     instruction = new LongConstantInstruction(parseLong(text));
+        // } catch (NumberFormatException ignored) {
+        //     instruction = new DoubleConstantInstruction(parseDouble(text));
+        // }
 
-        return append(attachSourceRange(instruction, context));
+        // return append(attachSourceRange(instruction, context));
+        throw TODO();
     }
 
     private int visit(LuneParser.HexadecimalIntegerExpressionContext context) {
@@ -523,23 +541,28 @@ public final class ChunkCompiler {
             value = new BigInteger(text, 16).longValue();
         }
 
-        return append(attachSourceRange(new LongConstantInstruction(value), context));
+        // return append(attachSourceRange(new LongConstantInstruction(value), context));
+        throw TODO();
     }
 
     private int visit(LuneParser.DecimalFloatExpressionContext context) {
-        return append(attachSourceRange(new DoubleConstantInstruction(parseDouble(context.token.getText())), context));
+        // return append(attachSourceRange(new DoubleConstantInstruction(parseDouble(context.token.getText())), context));
+        throw TODO();
     }
 
     private int visit(LuneParser.HexadecimalFloatExpressionContext context) {
-        return append(attachSourceRange(new DoubleConstantInstruction(parseDouble(context.token.getText())), context));
+        // return append(attachSourceRange(new DoubleConstantInstruction(parseDouble(context.token.getText())), context));
+        throw TODO();
     }
 
     private int visit(LuneParser.ShortLiteralStringExpressionContext context) {
-        return append(attachSourceRange(new StringConstantInstruction(parseShortLiteralString(context.token)), context));
+        // return append(attachSourceRange(new StringConstantInstruction(parseShortLiteralString(context.token)), context));
+        throw TODO();
     }
 
     private int visit(LuneParser.LongLiteralStringExpressionContext context) {
-        return append(attachSourceRange(new StringConstantInstruction(parseLongLiteralString(context.token)), context));
+        // return append(attachSourceRange(new StringConstantInstruction(parseLongLiteralString(context.token)), context));
+        throw TODO();
     }
 
     private int visit(LuneParser.VarargsExpressionContext context) {
@@ -559,105 +582,115 @@ public final class ChunkCompiler {
     }
 
     private int visit(LuneParser.PowerExpressionContext context) {
-        var lhs = visit(context.lhs);
-        var rhs = visit(context.rhs);
-        return append(attachSourceRange(new BinaryOpInstruction(BinaryOp.Power, lhs, rhs), context));
+        // var lhs = visit(context.lhs);
+        // var rhs = visit(context.rhs);
+        // return append(attachSourceRange(new BinaryOpInstruction(BinaryOp.Power, lhs, rhs), context));
+        throw TODO();
     }
 
     private int visit(LuneParser.PrefixOperatorExpressionContext context) {
-        return append(
-            attachSourceRange(
-                new UnaryOpInstruction(
-                    switch (context.operator.getType()) {
-                        case LuneParser.Not -> UnaryOp.Not;
-                        case LuneParser.Tilde -> UnaryOp.BitwiseNot;
-                        case LuneParser.Minus -> UnaryOp.Negate;
-                        case LuneParser.Pound -> UnaryOp.Length;
-                        default -> throw new AssertionError();
-                    },
-                    visit(context.operand)
-                ),
-                context
-            )
-        );
+        // return append(
+        //     attachSourceRange(
+        //         new UnaryOpInstruction(
+        //             switch (context.operator.getType()) {
+        //                 case LuneParser.Not -> UnaryOp.Not;
+        //                 case LuneParser.Tilde -> UnaryOp.BitwiseNot;
+        //                 case LuneParser.Minus -> UnaryOp.Negate;
+        //                 case LuneParser.Pound -> UnaryOp.Length;
+        //                 default -> throw new AssertionError();
+        //             },
+        //             visit(context.operand)
+        //         ),
+        //         context
+        //     )
+        // );
+        throw TODO();
     }
 
     private int visit(LuneParser.MultiplyDivideModuloExpressionContext context) {
-        var op = switch (context.operator.getType()) {
-            case LuneParser.Star -> BinaryOp.Multiply;
-            case LuneParser.Slash -> BinaryOp.Divide;
-            case LuneParser.Slash2 -> BinaryOp.FloorDivide;
-            case LuneParser.Percent -> BinaryOp.Modulo;
-            default -> throw new AssertionError();
-        };
+        // var op = switch (context.operator.getType()) {
+        //     case LuneParser.Star -> BinaryOp.Multiply;
+        //     case LuneParser.Slash -> BinaryOp.Divide;
+        //     case LuneParser.Slash2 -> BinaryOp.FloorDivide;
+        //     case LuneParser.Percent -> BinaryOp.Modulo;
+        //     default -> throw new AssertionError();
+        // };
 
-        var lhs = visit(context.lhs);
-        var rhs = visit(context.rhs);
-        return append(attachSourceRange(new BinaryOpInstruction(op, lhs, rhs), context));
+        // var lhs = visit(context.lhs);
+        // var rhs = visit(context.rhs);
+        // return append(attachSourceRange(new BinaryOpInstruction(op, lhs, rhs), context));
+        throw TODO();
     }
 
     private int visit(LuneParser.AddSubtractExpressionContext context) {
-        var op = switch (context.operator.getType()) {
-            case LuneParser.Plus -> BinaryOp.Add;
-            case LuneParser.Minus -> BinaryOp.Subtract;
-            default -> throw new AssertionError();
-        };
+        // var op = switch (context.operator.getType()) {
+        //     case LuneParser.Plus -> BinaryOp.Add;
+        //     case LuneParser.Minus -> BinaryOp.Subtract;
+        //     default -> throw new AssertionError();
+        // };
 
-        var lhs = visit(context.lhs);
-        var rhs = visit(context.rhs);
-        return append(attachSourceRange(new BinaryOpInstruction(op, lhs, rhs), context));
+        // var lhs = visit(context.lhs);
+        // var rhs = visit(context.rhs);
+        // return append(attachSourceRange(new BinaryOpInstruction(op, lhs, rhs), context));
+        throw TODO();
     }
 
     private int visit(LuneParser.ConcatenateExpressionContext context) {
-        var lhs = visit(context.lhs);
-        var rhs = visit(context.rhs);
-        return append(attachSourceRange(new BinaryOpInstruction(BinaryOp.Concatenate, lhs, rhs), context));
+        // var lhs = visit(context.lhs);
+        // var rhs = visit(context.rhs);
+        // return append(attachSourceRange(new BinaryOpInstruction(BinaryOp.Concatenate, lhs, rhs), context));
+        throw TODO();
     }
 
     private int visit(LuneParser.ShiftExpressionContext context) {
-        var op = switch (context.operator.getType()) {
-            case LuneParser.LAngle2 -> BinaryOp.LeftShift;
-            case LuneParser.RAngle2 -> BinaryOp.RightShift;
-            default -> throw new AssertionError();
-        };
+        // var op = switch (context.operator.getType()) {
+        //     case LuneParser.LAngle2 -> BinaryOp.LeftShift;
+        //     case LuneParser.RAngle2 -> BinaryOp.RightShift;
+        //     default -> throw new AssertionError();
+        // };
 
-        var lhs = visit(context.lhs);
-        var rhs = visit(context.rhs);
-        return append(attachSourceRange(new BinaryOpInstruction(op, lhs, rhs), context));
+        // var lhs = visit(context.lhs);
+        // var rhs = visit(context.rhs);
+        // return append(attachSourceRange(new BinaryOpInstruction(op, lhs, rhs), context));
+        throw TODO();
     }
 
     private int visit(LuneParser.BitwiseAndExpressionContext context) {
-        var lhs = visit(context.lhs);
-        var rhs = visit(context.rhs);
-        return append(attachSourceRange(new BinaryOpInstruction(BinaryOp.BitwiseAnd, lhs, rhs), context));
+        // var lhs = visit(context.lhs);
+        // var rhs = visit(context.rhs);
+        // return append(attachSourceRange(new BinaryOpInstruction(BinaryOp.BitwiseAnd, lhs, rhs), context));
+        throw TODO();
     }
 
     private int visit(LuneParser.BitwiseXOrExpressionContext context) {
-        var lhs = visit(context.lhs);
-        var rhs = visit(context.rhs);
-        return append(attachSourceRange(new BinaryOpInstruction(BinaryOp.BitwiseXOr, lhs, rhs), context));
+        // var lhs = visit(context.lhs);
+        // var rhs = visit(context.rhs);
+        // return append(attachSourceRange(new BinaryOpInstruction(BinaryOp.BitwiseXOr, lhs, rhs), context));
+        throw TODO();
     }
 
     private int visit(LuneParser.BitwiseOrExpressionContext context) {
-        var lhs = visit(context.lhs);
-        var rhs = visit(context.rhs);
-        return append(attachSourceRange(new BinaryOpInstruction(BinaryOp.BitwiseOr, lhs, rhs), context));
+        // var lhs = visit(context.lhs);
+        // var rhs = visit(context.rhs);
+        // return append(attachSourceRange(new BinaryOpInstruction(BinaryOp.BitwiseOr, lhs, rhs), context));
+        throw TODO();
     }
 
     private int visit(LuneParser.ComparisonExpressionContext context) {
-        var op = switch (context.operator.getType()) {
-            case LuneParser.LAngle -> BinaryOp.Less;
-            case LuneParser.RAngle -> BinaryOp.Greater;
-            case LuneParser.LAngleEquals -> BinaryOp.LessOrEqual;
-            case LuneParser.RAngleEquals -> BinaryOp.GreaterOrEqual;
-            case LuneParser.Equals2 -> BinaryOp.Equal;
-            case LuneParser.TildeEquals -> BinaryOp.NotEqual;
-            default -> throw new AssertionError();
-        };
+        // var op = switch (context.operator.getType()) {
+        //     case LuneParser.LAngle -> BinaryOp.Less;
+        //     case LuneParser.RAngle -> BinaryOp.Greater;
+        //     case LuneParser.LAngleEquals -> BinaryOp.LessOrEqual;
+        //     case LuneParser.RAngleEquals -> BinaryOp.GreaterOrEqual;
+        //     case LuneParser.Equals2 -> BinaryOp.Equal;
+        //     case LuneParser.TildeEquals -> BinaryOp.NotEqual;
+        //     default -> throw new AssertionError();
+        // };
 
-        var lhs = visit(context.lhs);
-        var rhs = visit(context.rhs);
-        return append(attachSourceRange(new BinaryOpInstruction(op, lhs, rhs), context));
+        // var lhs = visit(context.lhs);
+        // var rhs = visit(context.rhs);
+        // return append(attachSourceRange(new BinaryOpInstruction(op, lhs, rhs), context));
+        throw TODO();
     }
 
     private int visit(LuneParser.AndExpressionContext context) {

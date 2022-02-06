@@ -2,13 +2,15 @@ package org.lunelang.language.nodes.instructions;
 
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import org.lunelang.language.nodes.InstructionNode;
 import org.lunelang.language.nodes.UnaryOpNode;
 
 import static org.lunelang.language.nodes.LuneTypeSystem.isNil;
 
 public abstract class CoerceToBooleanNode extends UnaryOpNode {
-    protected CoerceToBooleanNode(int resultSlot, int operandSlot) {
-        super(resultSlot, operandSlot);
+    @Override
+    public final InstructionNode cloneUninitialized() {
+        return CoerceToBooleanNodeGen.create(getResultSlot(), getOperandSlot());
     }
 
     @Specialization

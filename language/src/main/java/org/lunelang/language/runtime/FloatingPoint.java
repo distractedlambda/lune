@@ -1,5 +1,7 @@
 package org.lunelang.language.runtime;
 
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+
 public final class FloatingPoint {
     private FloatingPoint() {}
 
@@ -9,5 +11,20 @@ public final class FloatingPoint {
 
     public static boolean isNaN(double value) {
         return Double.isNaN(value);
+    }
+
+    @TruffleBoundary(allowInlining = true)
+    public static double pow(double base, double exponent) {
+        return Math.pow(base, exponent);
+    }
+
+    @TruffleBoundary(allowInlining = true)
+    public static double floorDivide(double dividend, double divisor) {
+        return Math.floor(dividend / divisor);
+    }
+
+    @TruffleBoundary(allowInlining = true)
+    public static double floorRemainder(double dividend, double divisor) {
+        return dividend - divisor * floorDivide(dividend, divisor);
     }
 }
