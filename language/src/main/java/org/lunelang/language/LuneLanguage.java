@@ -1,18 +1,42 @@
 package org.lunelang.language;
 
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.nodes.Node;
-import org.lunelang.language.runtime.InternedBoolean;
-import org.lunelang.language.runtime.InternedDouble;
-import org.lunelang.language.runtime.InternedLong;
-
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import org.lunelang.language.runtime.InternedStringSet;
+import org.lunelang.language.runtime.LuneString;
 
 @TruffleLanguage.Registration(id = "lune", name = "Lune")
 public final class LuneLanguage extends TruffleLanguage<LuneContext> {
     private static final LanguageReference<LuneLanguage> REFERENCE = LanguageReference.create(LuneLanguage.class);
+
+    private final InternedStringSet internedStrings = new InternedStringSet();
+
+    private final LuneString addMetamethodKey = internedStrings.intern("__add");
+    private final LuneString subMetamethodKey = internedStrings.intern("__sub");
+    private final LuneString mulMetamethodKey = internedStrings.intern("__mul");
+    private final LuneString divMetamethodKey = internedStrings.intern("__div");
+    private final LuneString modMetamethodKey = internedStrings.intern("__mod");
+    private final LuneString powMetamethodKey = internedStrings.intern("__pow");
+    private final LuneString unaryMinusMetamethodKey = internedStrings.intern("__unm");
+    private final LuneString integerDivideMetamethodKey = internedStrings.intern("__idiv");
+    private final LuneString bitwiseAndMetamethodKey = internedStrings.intern("__band");
+    private final LuneString bitwiseOrMetamethodKey = internedStrings.intern("__bor");
+    private final LuneString bitwiseExclusiveOrMetamethodKey = internedStrings.intern("__bxor");
+    private final LuneString bitwiseNotMetamethodKey = internedStrings.intern("__bnot");
+    private final LuneString shlMetamethodKey = internedStrings.intern("__shl");
+    private final LuneString shrMetamethodKey = internedStrings.intern("__shr");
+    private final LuneString concatMetamethodKey = internedStrings.intern("__concat");
+    private final LuneString lenMetamethodKey = internedStrings.intern("__len");
+    private final LuneString eqMetamethodKey = internedStrings.intern("__eq");
+    private final LuneString ltMetamethodKey = internedStrings.intern("__lt");
+    private final LuneString leMetamethodKey = internedStrings.intern("__le");
+    private final LuneString indexMetamethodKey = internedStrings.intern("__index");
+    private final LuneString newIndexMetamethodKey = internedStrings.intern("__newindex");
+    private final LuneString callMetamethodKey = internedStrings.intern("__call");
+    private final LuneString gcMetamethodKey = internedStrings.intern("__gc");
+    private final LuneString closeMetamethodKey = internedStrings.intern("__close");
+    private final LuneString modeMetavalueKey = internedStrings.intern("__mode");
+    private final LuneString nameMetavalueKey = internedStrings.intern("__name");
 
     @Override
     protected LuneContext createContext(Env env) {
@@ -22,4 +46,113 @@ public final class LuneLanguage extends TruffleLanguage<LuneContext> {
     public static LuneLanguage get(Node node) {
         return REFERENCE.get(node);
     }
+
+    public InternedStringSet getInternedStrings() {
+        return internedStrings;
+    }
+
+    public LuneString getAddMetamethodKey() {
+        return addMetamethodKey;
+    }
+
+    public LuneString getSubMetamethodKey() {
+        return subMetamethodKey;
+    }
+
+    public LuneString getMulMetamethodKey() {
+        return mulMetamethodKey;
+    }
+
+    public LuneString getDivMetamethodKey() {
+        return divMetamethodKey;
+    }
+
+    public LuneString getModMetamethodKey() {
+        return modMetamethodKey;
+    }
+
+    public LuneString getPowMetamethodKey() {
+        return powMetamethodKey;
+    }
+
+    public LuneString getUnaryMinusMetamethodKey() {
+        return unaryMinusMetamethodKey;
+    }
+
+    public LuneString getIntegerDivideMetamethodKey() {
+        return integerDivideMetamethodKey;
+    }
+
+    public LuneString getBitwiseAndMetamethodKey() {
+        return bitwiseAndMetamethodKey;
+    }
+
+    public LuneString getBitwiseOrMetamethodKey() {
+        return bitwiseOrMetamethodKey;
+    }
+
+    public LuneString getBitwiseExclusiveOrMetamethodKey() {
+        return bitwiseExclusiveOrMetamethodKey;
+    }
+
+    public LuneString getBitwiseNotMetamethodKey() {
+        return bitwiseNotMetamethodKey;
+    }
+
+    public LuneString getShlMetamethodKey() {
+        return shlMetamethodKey;
+    }
+
+    public LuneString getShrMetamethodKey() {
+        return shrMetamethodKey;
+    }
+
+    public LuneString getConcatMetamethodKey() {
+        return concatMetamethodKey;
+    }
+
+    public LuneString getLenMetamethodKey() {
+        return lenMetamethodKey;
+    }
+
+    public LuneString getEqMetamethodKey() {
+        return eqMetamethodKey;
+    }
+
+    public LuneString getLtMetamethodKey() {
+        return ltMetamethodKey;
+    }
+
+    public LuneString getLeMetamethodKey() {
+        return leMetamethodKey;
+    }
+
+    public LuneString getIndexMetavalueKey() {
+        return indexMetamethodKey;
+    }
+
+    public LuneString getNewIndexMetamethodKey() {
+        return newIndexMetamethodKey;
+    }
+
+    public LuneString getCallMetamethodKey() {
+        return callMetamethodKey;
+    }
+
+    public LuneString getGcMetamethodKey() {
+        return gcMetamethodKey;
+    }
+
+    public LuneString getCloseMetamethodKey() {
+        return closeMetamethodKey;
+    }
+
+    public LuneString getModeMetavalueKey() {
+        return modeMetavalueKey;
+    }
+
+    public LuneString getNameMetavalueKey() {
+        return nameMetavalueKey;
+    }
+
 }
