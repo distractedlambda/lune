@@ -6,16 +6,15 @@ import static java.lang.Double.longBitsToDouble;
 public final class CaptureBox {
     private byte type;
     private long primitiveValue;
-    private Object objectValue;
+    private Object objectValue = Nil.getInstance();
 
-    private static final byte TYPE_NIL = 0;
+    private static final byte TYPE_OBJECT = 0;
     private static final byte TYPE_BOOLEAN = 1;
     private static final byte TYPE_LONG = 2;
     private static final byte TYPE_DOUBLE = 3;
-    private static final byte TYPE_OBJECT = 4;
 
-    public boolean isNil() {
-        return type == TYPE_NIL;
+    public boolean isObject() {
+        return type == TYPE_OBJECT;
     }
 
     public boolean isBoolean() {
@@ -30,8 +29,9 @@ public final class CaptureBox {
         return type == TYPE_DOUBLE;
     }
 
-    public boolean isObject() {
-        return type == TYPE_OBJECT;
+    public Object getObject() {
+        assert type == TYPE_OBJECT;
+        return objectValue;
     }
 
     public boolean getBoolean() {
@@ -49,14 +49,9 @@ public final class CaptureBox {
         return longBitsToDouble(primitiveValue);
     }
 
-    public Object getObject() {
-        assert type == TYPE_OBJECT;
-        return objectValue;
-    }
-
-    public void setNil() {
-        type = TYPE_NIL;
-        objectValue = null;
+    public void setObject(Object value) {
+        type = TYPE_OBJECT;
+        objectValue = value;
     }
 
     public void setBoolean(boolean value) {
@@ -75,10 +70,5 @@ public final class CaptureBox {
         type = TYPE_DOUBLE;
         primitiveValue = doubleToRawLongBits(value);
         objectValue = null;
-    }
-
-    public void setObject(Object value) {
-        type = TYPE_OBJECT;
-        objectValue = value;
     }
 }
