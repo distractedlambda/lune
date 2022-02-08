@@ -3,38 +3,31 @@ package org.lunelang.language.runtime;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 
 import static com.oracle.truffle.api.CompilerAsserts.neverPartOfCompilation;
 
-public final class LuneString {
+public final class InternedString {
     @CompilationFinal(dimensions = 1) private final byte[] bytes;
+    private final int hashCode;
 
-    public LuneString(byte[] bytes) {
+    public InternedString(byte[] bytes, int hashCode) {
         assert bytes != null;
         this.bytes = bytes;
+        this.hashCode = hashCode;
     }
 
-    public LuneString(String string) {
-        neverPartOfCompilation();
-        bytes = string.getBytes(StandardCharsets.UTF_8);
+    public byte[] getBytes() {
+        return bytes;
     }
 
     @Override
     public int hashCode() {
-        neverPartOfCompilation();
-        return (int) FxHash.hash(bytes);
+        return hashCode;
     }
 
     @Override
     public boolean equals(Object object) {
-        neverPartOfCompilation();
-
-        if (!(object instanceof LuneString other)) {
-            return false;
-        }
-
-        return Arrays.equals(bytes, other.bytes);
+        return this == object;
     }
 
     @Override

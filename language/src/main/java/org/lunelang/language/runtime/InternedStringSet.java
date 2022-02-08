@@ -2,12 +2,14 @@ package org.lunelang.language.runtime;
 
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 import static com.oracle.truffle.api.CompilerAsserts.neverPartOfCompilation;
 import static java.lang.Math.addExact;
 
 public final class InternedStringSet {
-    private final ReferenceQueue<LuneString> queue = new ReferenceQueue<>();
+    private final ReferenceQueue<InternedString> queue = new ReferenceQueue<>();
     private Entry[] entries = new Entry[8];
     private int overestimatedSize;
 
@@ -18,8 +20,9 @@ public final class InternedStringSet {
             while (nextEntry != null) {
                 var entry = nextEntry;
                 nextEntry = entry.next;
-                if (entry.get() == null) continue;
-                var insertionIndex = entry.hashCode % newEntries.length;
+                var entryString = entry.get();
+                if (entryString == null) continue;
+                var insertionIndex = entryString.hashCode() % newEntries.length;
                 entry.next = newEntries[insertionIndex];
                 newEntries[insertionIndex] = entry;
             }
@@ -28,7 +31,7 @@ public final class InternedStringSet {
         entries = newEntries;
     }
 
-    public LuneString intern(LuneString string) {
+    public InternedString intern(byte[] bytes) {
         neverPartOfCompilation();
 
         for (var entry = (Entry) queue.poll(); entry != null; entry = (Entry) queue.poll()) {
@@ -39,7 +42,7 @@ public final class InternedStringSet {
             grow();
         }
 
-        var hashCode = string.hashCode();
+        var hashCode = (int) FxHash.hash(bytes);
         var index = hashCode % entries.length;
 
         for (Entry prior = null, entry = entries[index]; entry != null; entry = entry.next) {
@@ -50,29 +53,28 @@ public final class InternedStringSet {
                 } else {
                     entries[index] = entry.next;
                 }
-            } else if (entry.hashCode == hashCode && string.equals(entryString)) {
+            } else if (entryString.hashCode() == hashCode && Arrays.equals(bytes, entryString.getBytes())) {
                 return entryString;
             } else {
                 prior = entry;
             }
         }
 
-        entries[index] = new Entry(string, queue, hashCode, entries[index]);
-        return string;
+        var newString = new InternedString(bytes, hashCode);
+        entries[index] = new Entry(newString, queue, entries[index]);
+        return newString;
     }
 
-    public LuneString intern(String string) {
+    public InternedString intern(String string) {
         neverPartOfCompilation();
-        return intern(new LuneString(string));
+        return intern(string.getBytes(StandardCharsets.UTF_8));
     }
 
-    private static final class Entry extends WeakReference<LuneString> {
-        private final int hashCode;
+    private static final class Entry extends WeakReference<InternedString> {
         private Entry next;
 
-        public Entry(LuneString referent, ReferenceQueue<LuneString> queue, int hashCode, Entry next) {
+        public Entry(InternedString referent, ReferenceQueue<InternedString> queue, Entry next) {
             super(referent, queue);
-            this.hashCode = hashCode;
             this.next = next;
         }
     }

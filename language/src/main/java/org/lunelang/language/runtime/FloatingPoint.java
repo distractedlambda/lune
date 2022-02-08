@@ -2,11 +2,17 @@ package org.lunelang.language.runtime;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 
+import static java.lang.Double.doubleToRawLongBits;
+
 public final class FloatingPoint {
     private FloatingPoint() {}
 
     public static boolean hasExactLongValue(double value) {
         return Double.isFinite(value) && value >= -0x1p63 && value < 0x1p63 && ((double) (long) value) == value;
+    }
+
+    public static boolean bitwiseEqual(double x, double y) {
+        return doubleToRawLongBits(x) == doubleToRawLongBits(y);
     }
 
     public static boolean isNaN(double value) {
