@@ -1,8 +1,8 @@
 package org.lunelang.language;
 
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.nodes.Node;
-import org.lunelang.language.runtime.InternedString;
 import org.lunelang.language.runtime.InternedStringSet;
 
 @TruffleLanguage.Registration(id = "lune", name = "Lune")
@@ -11,32 +11,32 @@ public final class LuneLanguage extends TruffleLanguage<LuneContext> {
 
     private final InternedStringSet internedStrings = new InternedStringSet();
 
-    private final InternedString addMetamethodKey = internedStrings.intern("__add");
-    private final InternedString subMetamethodKey = internedStrings.intern("__sub");
-    private final InternedString mulMetamethodKey = internedStrings.intern("__mul");
-    private final InternedString divMetamethodKey = internedStrings.intern("__div");
-    private final InternedString modMetamethodKey = internedStrings.intern("__mod");
-    private final InternedString powMetamethodKey = internedStrings.intern("__pow");
-    private final InternedString unaryMinusMetamethodKey = internedStrings.intern("__unm");
-    private final InternedString integerDivideMetamethodKey = internedStrings.intern("__idiv");
-    private final InternedString bitwiseAndMetamethodKey = internedStrings.intern("__band");
-    private final InternedString bitwiseOrMetamethodKey = internedStrings.intern("__bor");
-    private final InternedString bitwiseExclusiveOrMetamethodKey = internedStrings.intern("__bxor");
-    private final InternedString bitwiseNotMetamethodKey = internedStrings.intern("__bnot");
-    private final InternedString shlMetamethodKey = internedStrings.intern("__shl");
-    private final InternedString shrMetamethodKey = internedStrings.intern("__shr");
-    private final InternedString concatMetamethodKey = internedStrings.intern("__concat");
-    private final InternedString lenMetamethodKey = internedStrings.intern("__len");
-    private final InternedString eqMetamethodKey = internedStrings.intern("__eq");
-    private final InternedString ltMetamethodKey = internedStrings.intern("__lt");
-    private final InternedString leMetamethodKey = internedStrings.intern("__le");
-    private final InternedString indexMetamethodKey = internedStrings.intern("__index");
-    private final InternedString newIndexMetamethodKey = internedStrings.intern("__newindex");
-    private final InternedString callMetamethodKey = internedStrings.intern("__call");
-    private final InternedString gcMetamethodKey = internedStrings.intern("__gc");
-    private final InternedString closeMetamethodKey = internedStrings.intern("__close");
-    private final InternedString modeMetavalueKey = internedStrings.intern("__mode");
-    private final InternedString nameMetavalueKey = internedStrings.intern("__name");
+    @CompilationFinal(dimensions = 1) private final byte[] addMetamethodKey = internedStrings.intern("__add");
+    @CompilationFinal(dimensions = 1) private final byte[] subMetamethodKey = internedStrings.intern("__sub");
+    @CompilationFinal(dimensions = 1) private final byte[] mulMetamethodKey = internedStrings.intern("__mul");
+    @CompilationFinal(dimensions = 1) private final byte[] divMetamethodKey = internedStrings.intern("__div");
+    @CompilationFinal(dimensions = 1) private final byte[] modMetamethodKey = internedStrings.intern("__mod");
+    @CompilationFinal(dimensions = 1) private final byte[] powMetamethodKey = internedStrings.intern("__pow");
+    @CompilationFinal(dimensions = 1) private final byte[] unaryMinusMetamethodKey = internedStrings.intern("__unm");
+    @CompilationFinal(dimensions = 1) private final byte[] integerDivideMetamethodKey = internedStrings.intern("__idiv");
+    @CompilationFinal(dimensions = 1) private final byte[] bitwiseAndMetamethodKey = internedStrings.intern("__band");
+    @CompilationFinal(dimensions = 1) private final byte[] bitwiseOrMetamethodKey = internedStrings.intern("__bor");
+    @CompilationFinal(dimensions = 1) private final byte[] bitwiseExclusiveOrMetamethodKey = internedStrings.intern("__bxor");
+    @CompilationFinal(dimensions = 1) private final byte[] bitwiseNotMetamethodKey = internedStrings.intern("__bnot");
+    @CompilationFinal(dimensions = 1) private final byte[] shlMetamethodKey = internedStrings.intern("__shl");
+    @CompilationFinal(dimensions = 1) private final byte[] shrMetamethodKey = internedStrings.intern("__shr");
+    @CompilationFinal(dimensions = 1) private final byte[] concatMetamethodKey = internedStrings.intern("__concat");
+    @CompilationFinal(dimensions = 1) private final byte[] lenMetamethodKey = internedStrings.intern("__len");
+    @CompilationFinal(dimensions = 1) private final byte[] eqMetamethodKey = internedStrings.intern("__eq");
+    @CompilationFinal(dimensions = 1) private final byte[] ltMetamethodKey = internedStrings.intern("__lt");
+    @CompilationFinal(dimensions = 1) private final byte[] leMetamethodKey = internedStrings.intern("__le");
+    @CompilationFinal(dimensions = 1) private final byte[] indexMetamethodKey = internedStrings.intern("__index");
+    @CompilationFinal(dimensions = 1) private final byte[] newIndexMetamethodKey = internedStrings.intern("__newindex");
+    @CompilationFinal(dimensions = 1) private final byte[] callMetamethodKey = internedStrings.intern("__call");
+    @CompilationFinal(dimensions = 1) private final byte[] gcMetamethodKey = internedStrings.intern("__gc");
+    @CompilationFinal(dimensions = 1) private final byte[] closeMetamethodKey = internedStrings.intern("__close");
+    @CompilationFinal(dimensions = 1) private final byte[] modeMetavalueKey = internedStrings.intern("__mode");
+    @CompilationFinal(dimensions = 1) private final byte[] nameMetavalueKey = internedStrings.intern("__name");
 
     @Override
     protected LuneContext createContext(Env env) {
@@ -51,108 +51,107 @@ public final class LuneLanguage extends TruffleLanguage<LuneContext> {
         return internedStrings;
     }
 
-    public InternedString getAddMetamethodKey() {
+    public byte[] getAddMetamethodKey() {
         return addMetamethodKey;
     }
 
-    public InternedString getSubMetamethodKey() {
+    public byte[] getSubMetamethodKey() {
         return subMetamethodKey;
     }
 
-    public InternedString getMulMetamethodKey() {
+    public byte[] getMulMetamethodKey() {
         return mulMetamethodKey;
     }
 
-    public InternedString getDivMetamethodKey() {
+    public byte[] getDivMetamethodKey() {
         return divMetamethodKey;
     }
 
-    public InternedString getModMetamethodKey() {
+    public byte[] getModMetamethodKey() {
         return modMetamethodKey;
     }
 
-    public InternedString getPowMetamethodKey() {
+    public byte[] getPowMetamethodKey() {
         return powMetamethodKey;
     }
 
-    public InternedString getUnaryMinusMetamethodKey() {
+    public byte[] getUnaryMinusMetamethodKey() {
         return unaryMinusMetamethodKey;
     }
 
-    public InternedString getIntegerDivideMetamethodKey() {
+    public byte[] getIntegerDivideMetamethodKey() {
         return integerDivideMetamethodKey;
     }
 
-    public InternedString getBitwiseAndMetamethodKey() {
+    public byte[] getBitwiseAndMetamethodKey() {
         return bitwiseAndMetamethodKey;
     }
 
-    public InternedString getBitwiseOrMetamethodKey() {
+    public byte[] getBitwiseOrMetamethodKey() {
         return bitwiseOrMetamethodKey;
     }
 
-    public InternedString getBitwiseExclusiveOrMetamethodKey() {
+    public byte[] getBitwiseExclusiveOrMetamethodKey() {
         return bitwiseExclusiveOrMetamethodKey;
     }
 
-    public InternedString getBitwiseNotMetamethodKey() {
+    public byte[] getBitwiseNotMetamethodKey() {
         return bitwiseNotMetamethodKey;
     }
 
-    public InternedString getShlMetamethodKey() {
+    public byte[] getShlMetamethodKey() {
         return shlMetamethodKey;
     }
 
-    public InternedString getShrMetamethodKey() {
+    public byte[] getShrMetamethodKey() {
         return shrMetamethodKey;
     }
 
-    public InternedString getConcatMetamethodKey() {
+    public byte[] getConcatMetamethodKey() {
         return concatMetamethodKey;
     }
 
-    public InternedString getLenMetamethodKey() {
+    public byte[] getLenMetamethodKey() {
         return lenMetamethodKey;
     }
 
-    public InternedString getEqMetamethodKey() {
+    public byte[] getEqMetamethodKey() {
         return eqMetamethodKey;
     }
 
-    public InternedString getLtMetamethodKey() {
+    public byte[] getLtMetamethodKey() {
         return ltMetamethodKey;
     }
 
-    public InternedString getLeMetamethodKey() {
+    public byte[] getLeMetamethodKey() {
         return leMetamethodKey;
     }
 
-    public InternedString getIndexMetavalueKey() {
+    public byte[] getIndexMetavalueKey() {
         return indexMetamethodKey;
     }
 
-    public InternedString getNewIndexMetamethodKey() {
+    public byte[] getNewIndexMetamethodKey() {
         return newIndexMetamethodKey;
     }
 
-    public InternedString getCallMetamethodKey() {
+    public byte[] getCallMetamethodKey() {
         return callMetamethodKey;
     }
 
-    public InternedString getGcMetamethodKey() {
+    public byte[] getGcMetamethodKey() {
         return gcMetamethodKey;
     }
 
-    public InternedString getCloseMetamethodKey() {
+    public byte[] getCloseMetamethodKey() {
         return closeMetamethodKey;
     }
 
-    public InternedString getModeMetavalueKey() {
+    public byte[] getModeMetavalueKey() {
         return modeMetavalueKey;
     }
 
-    public InternedString getNameMetavalueKey() {
+    public byte[] getNameMetavalueKey() {
         return nameMetavalueKey;
     }
-
 }

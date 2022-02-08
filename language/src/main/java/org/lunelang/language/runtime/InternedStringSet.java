@@ -9,7 +9,7 @@ import static com.oracle.truffle.api.CompilerAsserts.neverPartOfCompilation;
 import static java.lang.Math.addExact;
 
 public final class InternedStringSet {
-    private final ReferenceQueue<InternedString> queue = new ReferenceQueue<>();
+    private final ReferenceQueue<byte[]> queue = new ReferenceQueue<>();
     private Entry[] entries = new Entry[8];
     private int overestimatedSize;
 
@@ -20,9 +20,8 @@ public final class InternedStringSet {
             while (nextEntry != null) {
                 var entry = nextEntry;
                 nextEntry = entry.next;
-                var entryString = entry.get();
-                if (entryString == null) continue;
-                var insertionIndex = entryString.hashCode() % newEntries.length;
+                if (entry.get() == null) continue;
+                var insertionIndex = entry.hashCode % newEntries.length;
                 entry.next = newEntries[insertionIndex];
                 newEntries[insertionIndex] = entry;
             }
@@ -31,7 +30,7 @@ public final class InternedStringSet {
         entries = newEntries;
     }
 
-    public InternedString intern(byte[] bytes) {
+    public byte[] intern(byte[] string) {
         neverPartOfCompilation();
 
         for (var entry = (Entry) queue.poll(); entry != null; entry = (Entry) queue.poll()) {
@@ -42,7 +41,7 @@ public final class InternedStringSet {
             grow();
         }
 
-        var hashCode = (int) FxHash.hash(bytes);
+        var hashCode = (int) FxHash.hash(string);
         var index = hashCode % entries.length;
 
         for (Entry prior = null, entry = entries[index]; entry != null; entry = entry.next) {
@@ -53,29 +52,30 @@ public final class InternedStringSet {
                 } else {
                     entries[index] = entry.next;
                 }
-            } else if (entryString.hashCode() == hashCode && Arrays.equals(bytes, entryString.getBytes())) {
+            } else if (entry.hashCode == hashCode && Arrays.equals(string, entryString)) {
                 return entryString;
             } else {
                 prior = entry;
             }
         }
 
-        var newString = new InternedString(bytes, hashCode);
-        entries[index] = new Entry(newString, queue, entries[index]);
-        return newString;
+        entries[index] = new Entry(string, queue, entries[index], hashCode);
+        return string;
     }
 
-    public InternedString intern(String string) {
+    public byte[] intern(String string) {
         neverPartOfCompilation();
         return intern(string.getBytes(StandardCharsets.UTF_8));
     }
 
-    private static final class Entry extends WeakReference<InternedString> {
+    private static final class Entry extends WeakReference<byte[]> {
         private Entry next;
+        private final int hashCode;
 
-        public Entry(InternedString referent, ReferenceQueue<InternedString> queue, Entry next) {
+        public Entry(byte[] referent, ReferenceQueue<byte[]> queue, Entry next, int hashCode) {
             super(referent, queue);
             this.next = next;
+            this.hashCode = hashCode;
         }
     }
 }
