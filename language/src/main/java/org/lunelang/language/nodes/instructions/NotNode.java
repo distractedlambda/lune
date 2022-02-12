@@ -2,11 +2,13 @@ package org.lunelang.language.nodes.instructions;
 
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.NodeInfo;
 import org.lunelang.language.nodes.InstructionNode;
 import org.lunelang.language.nodes.UnaryOpNode;
 
 import static org.lunelang.language.nodes.LuneTypeSystem.isNil;
 
+@NodeInfo(shortName = "not")
 public abstract class NotNode extends UnaryOpNode {
     @Override
     public final InstructionNode cloneUninitialized() {
@@ -30,10 +32,14 @@ public abstract class NotNode extends UnaryOpNode {
 
     @Specialization(replaces = {"onBoolean", "onLong", "onDouble"})
     protected void onObject(VirtualFrame frame, Object operand) {
+        boolean result;
+
         if (operand instanceof Boolean b) {
-            booleanResult(frame, !b);
+            result = !b;
         } else {
-            booleanResult(frame, isNil(operand));
+            result = isNil(operand);
         }
+
+        booleanResult(frame, result);
     }
 }

@@ -3,10 +3,12 @@ package org.lunelang.language.nodes.instructions;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.NodeInfo;
 import org.lunelang.language.nodes.BinaryOpNode;
 import org.lunelang.language.nodes.InstructionNode;
 import org.lunelang.language.runtime.FloatingPoint;
 
+@NodeInfo(shortName = "band")
 @ImportStatic(FloatingPoint.class)
 public abstract class BitwiseAndNode extends BinaryOpNode {
     @Override

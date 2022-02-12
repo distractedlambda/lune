@@ -2,9 +2,11 @@ package org.lunelang.language.nodes.instructions;
 
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.NodeInfo;
 import org.lunelang.language.nodes.BinaryOpNode;
 import org.lunelang.language.nodes.InstructionNode;
 
+@NodeInfo(shortName = "mul")
 public abstract class MultiplyNode extends BinaryOpNode {
     @Override
     public final InstructionNode cloneUninitialized() {

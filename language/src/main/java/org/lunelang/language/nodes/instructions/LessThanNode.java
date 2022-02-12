@@ -4,11 +4,13 @@ import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.NodeInfo;
 import org.lunelang.language.nodes.BinaryOpNode;
 import org.lunelang.language.nodes.InstructionNode;
 
 import java.util.Arrays;
 
+@NodeInfo(shortName = "lt")
 public abstract class LessThanNode extends BinaryOpNode {
     @Override
     public final InstructionNode cloneUninitialized() {
