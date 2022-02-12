@@ -9,15 +9,15 @@ import org.lunelang.language.nodes.InstructionNode;
 
 import java.util.Arrays;
 
-public abstract class LessThanNode extends BinaryOpNode {
+public abstract class LessThanOrEqualNode extends BinaryOpNode {
     @Override
     public final InstructionNode cloneUninitialized() {
-        return LessThanNodeGen.create(getResultSlot(), getLhsSlot(), getRhsSlot());
+        return LessThanOrEqualNodeGen.create(getResultSlot(), getLhsSlot(), getRhsSlot());
     }
 
     @Specialization
     protected void longLong(VirtualFrame frame, long lhs, long rhs) {
-        booleanResult(frame, lhs < rhs);
+        booleanResult(frame, lhs <= rhs);
     }
 
     @Specialization
@@ -27,7 +27,7 @@ public abstract class LessThanNode extends BinaryOpNode {
 
     @TruffleBoundary(allowInlining = true)
     private static boolean longDoubleBoundary(long lhs, double rhs) {
-        return !Double.isNaN(rhs) && (rhs >= 0x1p63 || lhs < (long) Math.ceil(rhs));
+        return rhs >= -0x1p63 && lhs <= (long) Math.floor(rhs);
     }
 
     @Specialization
@@ -37,12 +37,12 @@ public abstract class LessThanNode extends BinaryOpNode {
 
     @TruffleBoundary(allowInlining = true)
     private static boolean doubleLongBoundary(double lhs, long rhs) {
-        return !Double.isNaN(lhs) && (lhs < -0x1p63 || (long) Math.floor(lhs) < rhs);
+        return lhs < 0x1p63 && (long) Math.ceil(lhs) <= rhs;
     }
 
     @Specialization
     protected void doubleDouble(VirtualFrame frame, double lhs, double rhs) {
-        booleanResult(frame, lhs < rhs);
+        booleanResult(frame, lhs <= rhs);
     }
 
     @Specialization(guards = {"lhs == cachedLhs", "rhs == cachedRhs"})
@@ -64,6 +64,6 @@ public abstract class LessThanNode extends BinaryOpNode {
 
     @TruffleBoundary(allowInlining = true)
     protected static boolean stringStringBoundary(byte[] lhs, byte[] rhs) {
-        return Arrays.compare(lhs, rhs) < 0;
+        return Arrays.compare(lhs, rhs) <= 0;
     }
 }
