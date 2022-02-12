@@ -1,14 +1,12 @@
 package org.lunelang.language.nodes.util;
 
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
 import org.lunelang.language.nodes.LuneNode;
 import org.lunelang.language.runtime.InternedStringSet;
 
-import static com.oracle.truffle.api.CompilerDirectives.*;
+import static com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 
-@ReportPolymorphism
 public abstract class LongToStringNode extends LuneNode {
     public abstract byte[] execute(long value);
 

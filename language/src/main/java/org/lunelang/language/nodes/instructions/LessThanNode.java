@@ -1,34 +1,43 @@
 package org.lunelang.language.nodes.instructions;
 
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import org.lunelang.language.nodes.BinaryOpNode;
 import org.lunelang.language.nodes.InstructionNode;
-import org.lunelang.language.runtime.FloatingPoint;
 
-public abstract class RemainderNode extends BinaryOpNode {
+public abstract class LessThanNode extends BinaryOpNode {
     @Override
     public final InstructionNode cloneUninitialized() {
-        return RemainderNodeGen.create(getResultSlot(), getLhsSlot(), getRhsSlot());
+        return null;
     }
 
     @Specialization
     protected void longLong(VirtualFrame frame, long lhs, long rhs) {
-        longResult(frame, Math.floorMod(lhs, rhs));
+        booleanResult(frame, lhs < rhs);
     }
 
     @Specialization
     protected void longDouble(VirtualFrame frame, long lhs, double rhs) {
-        doubleDouble(frame, lhs, rhs);
+        booleanResult(frame, longDoubleBoundary(lhs, rhs));
     }
 
-    @Specialization
-    protected void doubleLong(VirtualFrame frame, double lhs, long rhs) {
-        doubleDouble(frame, lhs, rhs);
+    @TruffleBoundary(allowInlining = true)
+    private static boolean longDoubleBoundary(long lhs, double rhs) {
+        if (Double.isInfinite(rhs)) {
+            return rhs > 0;
+        }
+
+        if (Double.isNaN(rhs)) {
+            return false;
+        }
+
+        // TODO
     }
 
     @Specialization
     protected void doubleDouble(VirtualFrame frame, double lhs, double rhs) {
-        doubleResult(frame, FloatingPoint.floorRemainder(lhs, rhs));
+        booleanResult(frame, lhs < rhs);
     }
 }

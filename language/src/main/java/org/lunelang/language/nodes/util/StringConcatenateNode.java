@@ -2,14 +2,12 @@ package org.lunelang.language.nodes.util;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
 import org.lunelang.language.nodes.LuneNode;
 import org.lunelang.language.runtime.InternedStringSet;
 
 import static java.lang.System.arraycopy;
 
-@ReportPolymorphism
 public abstract class StringConcatenateNode extends LuneNode {
     public abstract byte[] execute(byte[] lhs, byte[] rhs);
 

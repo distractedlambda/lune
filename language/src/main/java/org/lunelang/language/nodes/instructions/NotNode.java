@@ -1,6 +1,5 @@
 package org.lunelang.language.nodes.instructions;
 
-import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import org.lunelang.language.nodes.InstructionNode;
@@ -8,7 +7,6 @@ import org.lunelang.language.nodes.UnaryOpNode;
 
 import static org.lunelang.language.nodes.LuneTypeSystem.isNil;
 
-@ReportPolymorphism
 public abstract class NotNode extends UnaryOpNode {
     @Override
     public final InstructionNode cloneUninitialized() {
