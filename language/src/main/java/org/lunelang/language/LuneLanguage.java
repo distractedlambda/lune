@@ -11,6 +11,7 @@ public final class LuneLanguage extends TruffleLanguage<LuneContext> {
 
     private final InternedStringSet internedStrings = new InternedStringSet();
 
+    @CompilationFinal(dimensions = 1) private final byte[] nilDisplayString = internedStrings.intern("nil");
     @CompilationFinal(dimensions = 1) private final byte[] addMetamethodKey = internedStrings.intern("__add");
     @CompilationFinal(dimensions = 1) private final byte[] subMetamethodKey = internedStrings.intern("__sub");
     @CompilationFinal(dimensions = 1) private final byte[] mulMetamethodKey = internedStrings.intern("__mul");
@@ -49,6 +50,10 @@ public final class LuneLanguage extends TruffleLanguage<LuneContext> {
 
     public InternedStringSet getInternedStrings() {
         return internedStrings;
+    }
+
+    public byte[] getNilDisplayString() {
+        return nilDisplayString;
     }
 
     public byte[] getAddMetamethodKey() {

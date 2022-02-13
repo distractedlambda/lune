@@ -1,7 +1,5 @@
 package org.lunelang.language.nodes.util;
 
-import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.DirectCallNode;
