@@ -11,16 +11,16 @@ import org.lunelang.language.runtime.Table;
 
 import static org.lunelang.language.nodes.LuneTypeSystem.isNil;
 
-public abstract class CallThroughMetatableNode extends LuneNode {
+public abstract class FunctionCallThroughMetatableNode extends LuneNode {
     public abstract Object execute(Object callee, Object metatable, Object[] arguments);
 
     @Specialization
-    protected Object presentMetatable(
+    protected Object metatablePresent(
         Object callee,
         Table metatable,
         Object[] arguments,
         @CachedLibrary(limit = "3") DynamicObjectLibrary dynamicObjects,
-        @Cached CallThroughMetamethodNode callThroughMetamethodNode
+        @Cached FunctionCallThroughMetamethodNode functionCallThroughMetamethodNode
     ) {
         var callMetamethod = dynamicObjects.getOrDefault(
             metatable,
@@ -28,11 +28,11 @@ public abstract class CallThroughMetatableNode extends LuneNode {
             Nil.getInstance()
         );
 
-        return callThroughMetamethodNode.execute(callee, callMetamethod, arguments);
+        return functionCallThroughMetamethodNode.execute(callee, callMetamethod, arguments);
     }
 
     @Fallback
-    protected Object missingMetatable(Object callee, Object metatable, Object[] arguments) {
+    protected Object metatableAbsent(Object callee, Object metatable, Object[] arguments) {
         assert isNil(metatable);
         return null;
     }

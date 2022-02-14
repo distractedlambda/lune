@@ -1,4 +1,4 @@
-package org.lunelang.language.nodes.util;
+package org.lunelang.language.nodes.function;
 
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.dsl.Cached;
@@ -13,8 +13,8 @@ public abstract class ClosureCallTargetNode extends LuneNode {
     @Specialization(limit = "1", guards = "closure == cachedClosure")
     protected CallTarget constantClosure(
         Closure closure,
-        @Cached("closure") Closure cachedClosure,
-        @Cached("closure.getCallTarget()") CallTarget callTarget
+        @Cached(value = "closure", weak = true) Closure cachedClosure,
+        @Cached(value = "closure.getCallTarget()", weak = true) CallTarget callTarget
     ) {
         return callTarget;
     }
@@ -22,10 +22,9 @@ public abstract class ClosureCallTargetNode extends LuneNode {
     @Specialization(limit = "1", guards = "closure.getShape() == cachedShape", replaces = "constantClosure")
     protected CallTarget constantShape(
         Closure closure,
-        @Cached("closure.getShape()") Shape cachedShape,
-        @Cached("closure.getCallTarget()") CallTarget callTarget
+        @Cached(value = "closure.getShape()", weak = true) Shape cachedShape
     ) {
-        return callTarget;
+        return (CallTarget) cachedShape.getDynamicType();
     }
 
     @Specialization(replaces = "constantShape")
