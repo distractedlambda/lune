@@ -8,10 +8,10 @@ import org.lunelang.language.nodes.util.ArrayPrependNode;
 import org.lunelang.language.runtime.Nil;
 
 public abstract class FunctionCallThroughMetamethodNode extends LuneNode {
-    public abstract Object execute(Object callee, Object callMetamethod, Object[] arguments);
+    public abstract Object execute(Object callee, Object callMetamethod, Object arguments);
 
     @Specialization
-    protected Object metamethodAbsent(Object callee, Nil callMetamethod, Object[] arguments) {
+    protected Object metamethodAbsent(Object callee, Nil callMetamethod, Object arguments) {
         return null;
     }
 
@@ -19,8 +19,8 @@ public abstract class FunctionCallThroughMetamethodNode extends LuneNode {
     protected Object metamethodPresent(
         Object callee,
         Object callMetamethod,
-        Object[] arguments,
-        @Cached ArrayPrependNode calleePrependNode,
+        Object arguments,
+        @Cached ArrayPrependNode calleePrependNode, // FIXME use something different here that preserves scalar-ness
         @Cached FunctionCallNode metamethodCallNode
     ) {
         return metamethodCallNode.execute(callMetamethod, calleePrependNode.execute(callee, arguments));

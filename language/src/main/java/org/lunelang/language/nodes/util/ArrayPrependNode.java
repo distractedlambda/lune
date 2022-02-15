@@ -8,8 +8,9 @@ import org.lunelang.language.nodes.LuneNode;
 
 import static java.lang.System.arraycopy;
 
+// FIXME handle scalars on rhs
 public abstract class ArrayPrependNode extends LuneNode {
-    public abstract Object[] execute(Object prefix, Object[] suffix);
+    public abstract Object[] execute(Object prefix, Object suffix);
 
     @ExplodeLoop
     @Specialization(limit = "1", guards = "suffix.length == cachedLength")
