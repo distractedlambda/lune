@@ -38,6 +38,7 @@ public final class LuneLanguage extends TruffleLanguage<LuneContext> {
     @CompilationFinal(dimensions = 1) private final byte[] closeMetamethodKey = internedStrings.intern("__close");
     @CompilationFinal(dimensions = 1) private final byte[] modeMetavalueKey = internedStrings.intern("__mode");
     @CompilationFinal(dimensions = 1) private final byte[] nameMetavalueKey = internedStrings.intern("__name");
+    @CompilationFinal(dimensions = 1) private final byte[] metatableMetavalueKey = internedStrings.intern("__metatable");
 
     @Override
     protected LuneContext createContext(Env env) {
@@ -158,5 +159,9 @@ public final class LuneLanguage extends TruffleLanguage<LuneContext> {
 
     public byte[] getNameMetavalueKey() {
         return nameMetavalueKey;
+    }
+
+    public byte[] getMetatableMetavalueKey() {
+        return metatableMetavalueKey;
     }
 }
