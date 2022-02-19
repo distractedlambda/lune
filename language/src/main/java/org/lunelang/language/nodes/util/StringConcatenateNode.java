@@ -4,7 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import org.lunelang.language.nodes.LuneNode;
-import org.lunelang.language.runtime.InternedStringSet;
+import org.lunelang.language.runtime.InternedSet;
 
 import static java.lang.System.arraycopy;
 
@@ -32,7 +32,7 @@ public abstract class StringConcatenateNode extends LuneNode {
     }
 
     @TruffleBoundary
-    private static byte[] impl(InternedStringSet internedStrings, byte[] lhs, byte[] rhs) {
+    private static byte[] impl(InternedSet<byte[]> internedStrings, byte[] lhs, byte[] rhs) {
         var combined = new byte[lhs.length + rhs.length];
         arraycopy(lhs, 0, combined, 0, lhs.length);
         arraycopy(rhs, 0, combined, lhs.length, rhs.length);

@@ -2,13 +2,11 @@ package org.lunelang.language.nodes.util;
 
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.library.CachedLibrary;
-import com.oracle.truffle.api.object.DynamicObjectLibrary;
 import org.lunelang.language.nodes.LuneNode;
-import org.lunelang.language.runtime.Nil;
+import org.lunelang.language.nodes.table.NormalizeTableKeyNode;
 import org.lunelang.language.runtime.Table;
 
-import static org.lunelang.language.nodes.LuneTypeSystem.isNil;
+import static org.lunelang.language.Todo.TODO;
 
 public abstract class IndexNode extends LuneNode {
     public abstract Object execute(Object receiver, Object key);
@@ -17,27 +15,26 @@ public abstract class IndexNode extends LuneNode {
     protected Object indexTable(
         Table receiver,
         Object key,
-        @Cached NormalizeTableKeyNode normalizeTableKeyNode,
-        @CachedLibrary(limit = "3") DynamicObjectLibrary tables,
-        @CachedLibrary(limit = "3") DynamicObjectLibrary metatables
+        @Cached NormalizeTableKeyNode normalizeTableKeyNode
     ) {
-        var normalizedKey = normalizeTableKeyNode.execute(key);
-        var value = tables.getOrDefault(receiver, normalizedKey, Nil.getInstance());
+        throw TODO();
+        // var normalizedKey = normalizeTableKeyNode.execute(key);
+        // var value = tables.getOrDefault(receiver, normalizedKey, Nil.getInstance());
 
-        if (!isNil(value)) {
-            return value;
-        }
+        // if (!isNil(value)) {
+        //     return value;
+        // }
 
-        if (!(tables.getDynamicType(receiver) instanceof Table metatable)) {
-            return Nil.getInstance();
-        }
+        // if (!(tables.getDynamicType(receiver) instanceof Table metatable)) {
+        //     return Nil.getInstance();
+        // }
 
-        var indexMetavalue = metatables.getOrDefault(metatable, getLanguage().getIndexMetavalueKey(), Nil.getInstance());
+        // var indexMetavalue = metatables.getOrDefault(metatable, getLanguage().getIndexMetavalueKey(), Nil.getInstance());
 
-        if (isNil(indexMetavalue)) {
-            return Nil.getInstance();
-        }
+        // if (isNil(indexMetavalue)) {
+        //     return Nil.getInstance();
+        // }
 
-        throw new UnsupportedOperationException("TODO");
+        // throw new UnsupportedOperationException("TODO");
     }
 }

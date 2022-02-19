@@ -3,7 +3,9 @@ package org.lunelang.language.nodes.util;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import org.lunelang.language.nodes.LuneNode;
-import org.lunelang.language.runtime.InternedStringSet;
+import org.lunelang.language.runtime.InternedSet;
+
+import java.nio.charset.StandardCharsets;
 
 import static com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 
@@ -29,7 +31,7 @@ public abstract class LongToStringNode extends LuneNode {
     }
 
     @TruffleBoundary
-    private static byte[] impl(InternedStringSet internedStrings, long value) {
-        return internedStrings.intern(Long.toString(value));
+    private static byte[] impl(InternedSet<byte[]> internedStrings, long value) {
+        return internedStrings.intern(Long.toString(value).getBytes(StandardCharsets.UTF_8));
     }
 }

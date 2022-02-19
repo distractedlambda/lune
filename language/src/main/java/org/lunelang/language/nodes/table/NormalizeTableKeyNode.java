@@ -1,4 +1,4 @@
-package org.lunelang.language.nodes.util;
+package org.lunelang.language.nodes.table;
 
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.ImportStatic;

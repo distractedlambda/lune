@@ -1,9 +1,7 @@
 package org.lunelang.language.nodes.util;
 
-import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.object.Shape;
 import org.lunelang.language.nodes.LuneNode;
 import org.lunelang.language.runtime.Builtin;
 import org.lunelang.language.runtime.Closure;
@@ -49,16 +47,8 @@ public abstract class GetMetatableNode extends LuneNode {
         return getContext().getFunctionMetatable();
     }
 
-    @Specialization(limit = "1", guards = "subject.getShape() == cachedShape")
-    protected Object cachedTableMetatable(
-        Table subject,
-        @Cached(value = "subject.getShape()", weak = true) Shape cachedShape
-    ) {
-        return cachedShape.getDynamicType();
-    }
-
-    @Specialization(replaces = "cachedTableMetatable")
-    protected Object uncachedTableMetatable(Table subject) {
-        return subject.getShape().getDynamicType();
+    @Specialization
+    protected Object tableMetatable(Table subject) {
+        return subject.getMetatable();
     }
 }
