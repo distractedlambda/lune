@@ -5,7 +5,7 @@ import com.oracle.truffle.api.memory.ByteArraySupport;
 import static java.lang.Long.rotateLeft;
 import static java.util.Objects.checkFromIndexSize;
 
-// TODO: license/attribution
+// Adapted from https://github.com/cbreeden/fxhash
 public final class FxHash {
     private FxHash() {}
 
